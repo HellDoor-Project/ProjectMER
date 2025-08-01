@@ -1,5 +1,5 @@
 global using Logger = LabApi.Features.Console.Logger;
-
+using ApiLib.Library;
 using HarmonyLib;
 using LabApi.Events.CustomHandlers;
 using LabApi.Loader.Features.Paths;
@@ -134,4 +134,9 @@ public class ProjectMER : Plugin<Config>
 	public override Version Version => new Version(2025, 7, 26, 1);
 
 	public override Version RequiredApiVersion => new Version(1, 0, 0, 0);
+
+    public static bool EventUsage()
+    {
+        return ServerInfo.EventOngoing;
+    }
 }
