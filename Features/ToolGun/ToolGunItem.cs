@@ -84,7 +84,7 @@ public class ToolGunItem
 		ServerSpecificSettingsSync.DefinedSettings =
 		[
 			new SSGroupHeader("MapEditorReborn"),
-			new SSDropdownSetting(0, "Schematic Name", MapUtils.GetAvailableSchematicNames())
+			new SSDropdownSetting(0, "Schematic Name", MapUtils.GetAvailableSchematicNames(), isServerOnly: true)
 		];
 
 		ServerSpecificSettingsSync.SendToPlayersConditionally(x => x.inventory.UserInventory.Items.Values.Any(x => x.IsToolGun(out ToolGunItem _)));

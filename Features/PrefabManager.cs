@@ -19,6 +19,7 @@ public static class PrefabManager
 	public static DoorVariant DoorHcz { get; private set; }
 	public static DoorVariant DoorEz { get; private set; }
 	public static DoorVariant DoorHeavyBulk { get; private set; }
+	public static DoorVariant DoorGate { get; private set; }
 
 	public static WorkstationController Workstation { get; private set; }
 
@@ -55,6 +56,9 @@ public static class PrefabManager
 	public static Locker PedestalScp1344 { get; private set; }
 	public static Locker LockerExperimentalWeapon { get; private set; }
 
+	public static WaypointToy Waypoint { get; private set; }
+	public static SpawnableCullingParent CullingParent { get; private set; }
+
 	public static void RegisterPrefabs()
 	{
 		foreach (GameObject gameObject in NetworkClient.prefabs.Values)
@@ -86,6 +90,9 @@ public static class PrefabManager
 						continue;
 					case "HCZ BulkDoor":
 						DoorHeavyBulk = doorVariant;
+						continue;
+					case "Spawnable Unsecured Pryable GateDoor":
+						DoorGate = doorVariant;
 						continue;
 				}
 			}
@@ -206,6 +213,19 @@ public static class PrefabManager
 						continue;
 				}
 			}
+
+			if (gameObject.TryGetComponent(out WaypointToy waypointToy))
+			{
+				Waypoint = waypointToy;
+				continue;
+			}
+			
+			if (gameObject.TryGetComponent(out SpawnableCullingParent spawnableCullingParent))
+			{
+				CullingParent = spawnableCullingParent;
+				continue;
+			}
+
 		}
 	}
 }
