@@ -27,6 +27,13 @@ public class ToggleToolGun : ICommand
 			response = "This command can't be run from the server console.";
 			return false;
 		}
+		if (arguments.Count > 0){
+			if (!int.TryParse(arguments.At(0), out int id)
+            || !Player.TryGet(id, out player)){
+				response = "”кажите нормально id игрока а не " + arguments.At(0);
+				return false;
+			}
+		}
 
 		if (ToolGunItem.Remove(player))
 		{

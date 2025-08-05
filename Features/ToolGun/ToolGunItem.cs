@@ -10,6 +10,7 @@ using ProjectMER.Features.Serializable;
 using ProjectMER.Features.Serializable.Lockers;
 using ProjectMER.Features.Serializable.Schematics;
 using UserSettings.ServerSpecific;
+using Utils.Networking;
 
 namespace ProjectMER.Features.ToolGun;
 
@@ -80,15 +81,10 @@ public class ToolGunItem
 
 		ItemDictionary.Add(toolgun.ItemSerial, new ToolGunItem(toolgun));
 
-		ServerSpecificSettingsSync.SendOnJoinFilter = (_) => false; // Prevent all users from receiving the tools after joining the server.
-		ServerSpecificSettingsSync.DefinedSettings =
-		[
+		new SSSEntriesPack((new ServerSpecificSettingBase[] {
 			new SSGroupHeader("MapEditorReborn"),
-			new SSDropdownSetting(0, "Schematic Name", MapUtils.GetAvailableSchematicNames(), isServerOnly: true)
-		];
-
-		ServerSpecificSettingsSync.SendToPlayersConditionally(x => x.inventory.UserInventory.Items.Values.Any(x => x.IsToolGun(out ToolGunItem _)));
-
+			new SSDropdownSetting(ProjectMER.MerSettingId, "Schematic Name", MapUtils.GetAvailableSchematicNames(), isServerOnly: true)
+		}).Concat(ServerSpecificSettingsSync.DefinedSettings).ToArray(), ServerSpecificSettingsSync.Version).SendToHubsConditionally((x => x.inventory.UserInventory.Items.Values.Any(x => x.IsToolGun(out ToolGunItem _))));
 		return true;
 	}
 
@@ -115,7 +111,7 @@ public class ToolGunItem
 	{
 		if (CreateMode)
 		{
-			ServerSpecificSettingsSync.TryGetSettingOfUser(player.ReferenceHub, 0, out SSDropdownSetting dropdownSetting);
+			ServerSpecificSettingsSync.TryGetSettingOfUser(player.ReferenceHub, ProjectMER.MerSettingId, out SSDropdownSetting dropdownSetting);
 			dropdownSetting.TryGetSyncSelectionText(out string schematicName);
 
 			ToolGunHandler.CreateObject(player, SelectedObjectToSpawn, schematicName);

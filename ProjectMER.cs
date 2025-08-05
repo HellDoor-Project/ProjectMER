@@ -15,7 +15,7 @@ public class ProjectMER : Plugin<Config>
 {
 	private Harmony _harmony;
 	private FileSystemWatcher _mapFileSystemWatcher;
-
+	public const int MerSettingId = int.MaxValue;
 	public static ProjectMER Singleton { get; private set; }
 
 	/// <summary>
