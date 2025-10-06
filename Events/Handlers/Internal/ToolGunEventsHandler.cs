@@ -71,4 +71,15 @@ public class ToolGunEventsHandler : CustomEventsHandler
 		ev.IsAllowed = false;
 		toolGun.SelectedObjectToSpawn++;
 	}
+    public override void OnPlayerDying(PlayerDyingEventArgs ev)
+    {
+        foreach (Item item in ev.Player.Items.ToArray())
+		{
+			if (item.IsToolGun(out ToolGunItem _))
+			{
+				ToolGunItem.Remove(ev.Player);
+				break;
+            }
+        }
+    }
 }

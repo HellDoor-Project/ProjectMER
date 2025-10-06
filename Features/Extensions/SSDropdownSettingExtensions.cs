@@ -7,7 +7,7 @@ public static class SSDropdownSettingExtensions
 {
 	public static bool TryGetSyncSelectionText(this SSDropdownSetting dropdownSetting, out string text)
 	{
-		if (dropdownSetting.OriginalDefinition is not SSDropdownSetting original)
+		if (dropdownSetting is not SSDropdownSetting original)
 		{
 			text = string.Empty;
 			return false;
