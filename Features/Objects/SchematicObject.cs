@@ -166,8 +166,13 @@ public class SchematicObject : MonoBehaviour
 			return null;
 
 		GameObject gameObject = block.Create(this, parentTransform);
-		NetworkServer.Spawn(gameObject);
+		
+		if (block.BlockType == BlockType.Camera)
+			gameObject.GetComponent<Scp079CameraToy>()?.SetRoom(null, null);
 
+		if (block.BlockType != BlockType.Teleport && block.BlockType != BlockType.PlayerSpawnPoint)
+			NetworkServer.Spawn(gameObject);
+		
 		ObjectFromId.Add(block.ObjectId, gameObject.transform);
 
 		if (block.BlockType != BlockType.Light && TryGetAnimatorController(block.AnimatorName, out RuntimeAnimatorController animatorController))
@@ -249,6 +254,13 @@ public class SchematicObject : MonoBehaviour
 	private void OnDestroy()
 	{
 		AnimationController.Dictionary.Remove(this);
+		foreach (var obj in ObjectFromId.Values)
+		{
+			if (obj == null)
+				continue;
+			if (obj.parent == null)
+				NetworkServer.Destroy(obj.gameObject);
+		}
 		NetworkServer.Destroy(gameObject);
 		Schematic.OnSchematicDestroyed(new(this, Name));
 	}

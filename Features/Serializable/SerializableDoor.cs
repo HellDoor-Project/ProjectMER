@@ -3,6 +3,7 @@ using LabApi.Features.Wrappers;
 using Mirror;
 using ProjectMER.Features.Enums;
 using ProjectMER.Features.Extensions;
+using RelativePositioning;
 using UnityEngine;
 
 namespace ProjectMER.Features.Serializable;
@@ -38,6 +39,11 @@ public class SerializableDoor : SerializableObject
 
 		_prevType = DoorType;
 		SetupDoor(doorVariant);
+		
+		if (doorVariant.TryGetComponent(out NetIdWaypoint waypointBase))
+		{
+			waypointBase.SetPosition();
+		}
 
 		NetworkServer.UnSpawn(doorVariant.gameObject);
 		NetworkServer.Spawn(doorVariant.gameObject);

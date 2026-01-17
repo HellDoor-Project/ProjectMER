@@ -1,12 +1,25 @@
 using AdminToys;
+using Interactables.Interobjects.DoorUtils;
 using InventorySystem.Items.Firearms.Attachments;
+using InventorySystem.Items.Pickups;
 using LabApi.Features.Wrappers;
+using MapGeneration.Distributors;
+using MEC;
+using Mirror;
+using PlayerRoles;
 using ProjectMER.Events.Handlers.Internal;
 using ProjectMER.Features.Enums;
 using ProjectMER.Features.Extensions;
 using ProjectMER.Features.Objects;
+using ProjectMER.Features.Serializable.Lockers;
 using UnityEngine;
+using Utf8Json;
+using CameraType = ProjectMER.Features.Enums.CameraType;
+using CapybaraToy = AdminToys.CapybaraToy;
 using LightSourceToy = AdminToys.LightSourceToy;
+using LabApiLocker = LabApi.Features.Wrappers.Locker;
+using LapApiLockerChamber = LabApi.Features.Wrappers.LockerChamber;
+using Locker = MapGeneration.Distributors.Locker;
 using PrimitiveObjectToy = AdminToys.PrimitiveObjectToy;
 using TextToy = AdminToys.TextToy;
 using WaypointToy = AdminToys.WaypointToy;
@@ -45,6 +58,14 @@ public class SchematicBlockData
 			BlockType.Text => CreateText(),
 			BlockType.Interactable => CreateInteractable(),
 			BlockType.Waypoint => CreateWaypoint(),
+			BlockType.Locker => CreateLocker(),
+			BlockType.Door => CreateDoor(),
+			BlockType.Camera => CreateCamera(),
+			BlockType.ShootingTarget => CreateShootingTarget(),
+			BlockType.PlayerSpawnPoint => CreatePlayerSpawnPoint(schematicObject, parentTransform),
+			BlockType.Capybara => CreateCapybara(),
+			BlockType.Teleport => CreateTeleport(parentTransform),
+			BlockType.PlayerBlocker => CreatePlayerBlocker(),
 			_ => CreateEmpty(true)
 		};
 
@@ -54,12 +75,20 @@ public class SchematicBlockData
 		transform.SetParent(parentTransform);
 		transform.SetLocalPositionAndRotation(Position, Quaternion.Euler(Rotation));
 
-		transform.localScale = BlockType switch
+		if (BlockType != BlockType.Waypoint)
 		{
-			BlockType.Empty when Scale == Vector3.zero => Vector3.one,
-			BlockType.Waypoint => Scale * SerializableWaypoint.ScaleMultiplier,
-			_ => Scale,
-		};
+			transform.localScale = BlockType switch
+			{
+				BlockType.Empty when Scale == Vector3.zero => Vector3.one,
+				_ => Scale,
+			};
+		}
+		
+		// if you don't remove the parent before NetworkServer.Spawn then there won't be a door
+		if (BlockType == BlockType.Door)
+		{
+			transform.SetParent(null);
+		}
 
 		if (gameObject.TryGetComponent(out AdminToyBase adminToyBase))
 		{
@@ -71,7 +100,22 @@ public class SchematicBlockData
 			{
 				adminToyBase.NetworkMovementSmoothing = 60;
 			}
+			
+			if (adminToyBase is WaypointToy waypointToy)
+			{
+				waypointToy.BoundsSize = Scale;
+			}
 		}
+		
+		if (gameObject.TryGetComponent(out StructurePositionSync structurePositionSync))
+		{
+			structurePositionSync.Network_position = gameObject.transform.position;
+			structurePositionSync.Network_rotationY =
+				(sbyte)Mathf.RoundToInt(gameObject.transform.rotation.eulerAngles.y / 5.625f);
+		}
+		
+		if (BlockType == BlockType.Teleport)
+			transform.position += Vector3.up;
 
 		return gameObject;
 	}
@@ -154,7 +198,7 @@ public class SchematicBlockData
 	{
 		WorkstationController workstation = GameObject.Instantiate(PrefabManager.Workstation);
 		workstation.NetworkStatus = (byte)(Properties.TryGetValue("IsInteractable", out object isInteractable) && Convert.ToBoolean(isInteractable) ? 0 : 4);
-
+		NetworkServer.UnSpawn(workstation.gameObject);
 		return workstation.gameObject;
 	}
 
@@ -181,8 +225,187 @@ public class SchematicBlockData
 	private GameObject CreateWaypoint()
 	{
 		WaypointToy waypoint = GameObject.Instantiate(PrefabManager.Waypoint);
-		waypoint.NetworkPriority = byte.MaxValue;
-
 		return waypoint.gameObject;
+	}
+	
+	private GameObject CreateLocker()
+	{
+		Locker lockerPrefab = (LockerType)Convert.ToInt32(Properties["LockerType"]) switch
+		{
+			LockerType.PedestalScp500 => PrefabManager.PedestalScp500,
+			LockerType.LargeGun => PrefabManager.LockerLargeGun,
+			LockerType.RifleRack => PrefabManager.LockerRifleRack,
+			LockerType.Misc => PrefabManager.LockerMisc,
+			LockerType.Medkit => PrefabManager.LockerRegularMedkit,
+			LockerType.Adrenaline => PrefabManager.LockerAdrenalineMedkit,
+			LockerType.PedestalScp018 => PrefabManager.PedestalScp018,
+			LockerType.PedestalScp207 => PrefabManager.PedstalScp207,
+			LockerType.PedestalScp244 => PrefabManager.PedestalScp244,
+			LockerType.PedestalScp268 => PrefabManager.PedestalScp268,
+			LockerType.PedestalScp1853 => PrefabManager.PedstalScp1853,
+			LockerType.PedestalScp2176 => PrefabManager.PedestalScp2176,
+			LockerType.PedestalScpScp1576 => PrefabManager.PedestalScp1576,
+			LockerType.PedestalAntiScp207 => PrefabManager.PedestalAntiScp207,
+			LockerType.PedestalScp1344 => PrefabManager.PedestalScp1344,
+			LockerType.ExperimentalWeapon => PrefabManager.LockerExperimentalWeapon,
+			_ => throw new InvalidOperationException(),
+		};
+		Locker locker = GameObject.Instantiate(lockerPrefab);
+
+		List<SerializableLockerChamber> convertedChambers = new(((List<object>)Properties["Chambers"]).Count);
+		foreach (var json in (List<object>)Properties["Chambers"])
+		{
+			var chamber = Convert.ToString(json);
+			convertedChambers.Add(JsonSerializer.Deserialize<SerializableLockerChamber>(chamber));
+		}
+
+		List<SerializableLockerLoot> convertedLoot = new(((List<object>)Properties["Loot"]).Count);
+		foreach (var json in (List<object>)Properties["Loot"])
+		{
+			var loot = Convert.ToString(json);
+			convertedLoot.Add(JsonSerializer.Deserialize<SerializableLockerLoot>(loot));
+		}
+
+		LabApiLocker labApiLocker = LabApiLocker.Get(locker);
+		labApiLocker.ClearLockerLoot();
+		foreach (var loot in convertedLoot)
+		{
+			labApiLocker.AddLockerLoot(loot.TargetItem, loot.RemainingUses, loot.ProbabilityPoints, loot.MinPerChamber,
+				loot.MaxPerChamber);
+		}
+
+		int i = 0;
+		labApiLocker.ClearAllChambers();
+		foreach (LapApiLockerChamber chamber in labApiLocker.Chambers)
+		{
+			if (i > convertedChambers.Count - 1)
+				break;
+
+			chamber.AcceptableItems = convertedChambers[i].AcceptableItems.ToArray();
+			chamber.RequiredPermissions = convertedChambers[i].RequiredPermissions;
+			i++;
+		}
+
+		NetworkServer.UnSpawn(locker.gameObject);
+
+		Timing.CallDelayed(0.25f, () =>
+		{
+			foreach (ItemPickupBase itemPickupBase in locker.GetComponentsInChildren<ItemPickupBase>())
+			{
+				if (itemPickupBase.TryGetComponent(out Rigidbody rigidbody))
+					rigidbody.isKinematic = false;
+			}
+
+			i = 0;
+			foreach (LapApiLockerChamber chamber in labApiLocker.Chambers)
+			{
+				chamber.IsOpen = convertedChambers[i].IsOpen;
+				i++;
+			}
+		});
+
+		return locker.gameObject;
+	}
+	
+	private GameObject CreateDoor()
+	{
+		DoorVariant prefab = (DoorType)Convert.ToInt32(Properties["DoorType"]) switch
+		{
+			DoorType.Hcz or DoorType.HeavyContainmentDoor => PrefabManager.DoorHcz,
+			DoorType.Bulkdoor or DoorType.HeavyBulkDoor => PrefabManager.DoorHeavyBulk,
+			DoorType.Lcz or DoorType.LightContainmentDoor => PrefabManager.DoorLcz,
+			DoorType.Ez or DoorType.EntranceDoor => PrefabManager.DoorEz,
+			DoorType.Gate => PrefabManager.DoorGate,
+			_ => PrefabManager.DoorEz
+		};
+
+		DoorVariant doorVariant = GameObject.Instantiate(prefab);
+		if (doorVariant.TryGetComponent(out DoorRandomInitialStateExtension doorRandomInitialStateExtension))
+			GameObject.Destroy(doorRandomInitialStateExtension);
+
+		doorVariant.NetworkTargetState = Convert.ToBoolean(Properties["IsOpen"]);
+		doorVariant.ServerChangeLock(DoorLockReason.SpecialDoorFeature, Convert.ToBoolean(Properties["IsLocked"]));
+		doorVariant.RequiredPermissions = new DoorPermissionsPolicy(
+			(DoorPermissionFlags)Convert.ToUInt16(Properties["RequiredPermissions"]),
+			Convert.ToBoolean(Properties["RequireAll"]));
+		
+		return doorVariant.gameObject;
+	}
+	
+	private GameObject CreateCamera()
+	{
+		Scp079CameraToy prefab = (CameraType)Convert.ToInt32(Properties["CameraType"]) switch
+		{
+			CameraType.Lcz => PrefabManager.CameraLcz,
+			CameraType.Hcz => PrefabManager.CameraHcz,
+			CameraType.Ez => PrefabManager.CameraEz,
+			CameraType.EzArm => PrefabManager.CameraEzArm,
+			CameraType.Sz => PrefabManager.CameraSz,
+			_ => throw new InvalidOperationException(),
+		};
+		
+		Scp079CameraToy cameraVariant = GameObject.Instantiate(prefab);
+		cameraVariant.NetworkScale = Scale == Vector3.zero ? Vector3.one : Scale;
+		cameraVariant.NetworkMovementSmoothing = 60;
+		cameraVariant.Label = Convert.ToString(Properties["Label"]);
+		cameraVariant.SetRoom(null, null);
+		
+		return cameraVariant.gameObject;
+	}
+	
+	private GameObject CreateShootingTarget()
+	{
+		ShootingTarget prefab = (TargetType)Convert.ToInt32(Properties["TargetType"]) switch
+		{
+			TargetType.Binary => PrefabManager.ShootingTargetBinary,
+			TargetType.ClassD => PrefabManager.ShootingTargetDBoy,
+			TargetType.Sport => PrefabManager.ShootingTargetSport,
+			_ => throw new InvalidOperationException(),
+		};
+		
+		ShootingTarget shootingTarget = GameObject.Instantiate(prefab);
+		return shootingTarget.gameObject;
+	}
+	
+	private GameObject CreatePlayerSpawnPoint(SchematicObject schematicObject,Transform parent)
+	{
+		var spawn = new GameObject("PlayerSpawnpoint");
+		var component = spawn.AddComponent<SchematicPlayerSpawnpointObject>();
+		foreach (var role in (List<object>)Properties["Roles"])
+		{
+			component.Roles.Add((RoleTypeId)Convert.ToSByte(role));
+		}
+		return spawn;
+	}
+	
+	private GameObject CreateCapybara()
+	{
+		CapybaraToy capybaraToy = GameObject.Instantiate(PrefabManager.Capybara);
+		capybaraToy.CollisionsEnabled = true;
+		return capybaraToy.gameObject;
+	}
+	
+	private GameObject CreateTeleport(Transform parentTransform)
+	{
+		GameObject gameObject = GameObject.Instantiate(new GameObject("Teleport"));
+		gameObject.AddComponent<BoxCollider>().isTrigger = true;
+		var teleport = gameObject.AddComponent<SchematicTeleportObject>();
+		teleport.Cooldown = Convert.ToSingle(Properties["Cooldown"]);
+		foreach (var target in (List<object>)Properties["Targets"])
+		{
+			teleport.Targets.Add(Convert.ToString(target));
+		}
+
+		teleport.Id = Name;
+		return gameObject;
+	}
+	
+	private GameObject CreatePlayerBlocker()
+	{
+		PrimitiveObjectToy primitive = GameObject.Instantiate(PrefabManager.PrimitiveObject);
+		primitive.NetworkPrimitiveType = (PrimitiveType)Convert.ToInt32(Properties["PrimitiveType"]);
+		primitive.PrimitiveFlags = PrimitiveFlags.Collidable;
+		primitive.gameObject.layer = LayerMask.NameToLayer("InvisibleCollider");
+		return primitive.gameObject;
 	}
 }
