@@ -52,9 +52,15 @@ public class IndicatorObject : MapEditorObject
 
 	public static bool TryDestroyIndicator(MapEditorObject mapEditorObject)
 	{
+		if (mapEditorObject == null)
+			return false;
+		
 		if (!TryGetIndicator(mapEditorObject, out IndicatorObject indicator))
 			return false;
 
+		if (Dictionary[indicator] == null || indicator == null)
+			return false;
+		
 		if (Dictionary[indicator].TryGetComponent(out WaypointToy waypoint))
 		{
 			waypoint.NetworkVisualizeBounds = false;
