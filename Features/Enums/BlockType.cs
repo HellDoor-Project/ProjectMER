@@ -54,5 +54,7 @@ public enum BlockType
 	PlayerSpawnPoint = 33,
 	Capybara = 34,
 	PlayerBlocker = 35,
-	CullingParent = 36,
+	CullingParent = 36, 
+	MirrorPrefab = 37,
+	Clutter = 38,
 }
