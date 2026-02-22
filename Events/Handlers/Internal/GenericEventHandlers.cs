@@ -1,5 +1,6 @@
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Events.CustomHandlers;
+using LabApi.Features.Wrappers;
 using MEC;
 using ProjectMER.Features;
 using ProjectMER.Features.Objects;
@@ -24,7 +25,7 @@ public class GenericEventsHandler : CustomEventsHandler
 
 	public override void OnPlayerSpawning(PlayerSpawningEventArgs ev)
 	{
-		if (!ev.UseSpawnPoint)
+		if (!ev.UseSpawnPoint && Room.List.Count > 1)
 			return;
 
 		List<MonoBehaviour> list = [];
