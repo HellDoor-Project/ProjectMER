@@ -199,8 +199,33 @@ public class SchematicObject : MonoBehaviour
 		if (string.IsNullOrEmpty(animatorName))
 			return false;
 
-		Object? animatorObject = AssetBundle.GetAllLoadedAssetBundles().FirstOrDefault(x => x.mainAsset.name == animatorName)?.LoadAllAssets().First(x => x is RuntimeAnimatorController);
+		Object? animatorObject = null;
+		var list = AssetBundle.GetAllLoadedAssetBundles();
+		if (list != null)
+		{
+			AssetBundle? assetBundle = null;
+			foreach (var asset in list)
+			{
+				if (asset?.mainAsset?.name == animatorName)
+				{
+					assetBundle = asset;
+					break;
+				}
+			}
 
+			if (assetBundle != null)
+			{
+				foreach (var asset in assetBundle.LoadAllAssets())
+				{
+					if (asset is RuntimeAnimatorController controller)
+					{
+						animatorObject = controller;
+						break;
+					}
+				}
+			}
+		}
+		
 		if (animatorObject is null)
 		{
 			string path = Path.Combine(DirectoryPath, animatorName);
@@ -211,9 +236,23 @@ public class SchematicObject : MonoBehaviour
 				return false;
 			}
 
-			animatorObject = AssetBundle.LoadFromFile(path).LoadAllAssets().First(x => x is RuntimeAnimatorController);
+			var assets = AssetBundle.LoadFromFile(path).LoadAllAssets();
+			foreach (var asset in assets)
+			{
+				if (asset is RuntimeAnimatorController controller)
+				{
+					animatorObject = controller;
+					break;
+				}
+			}
 		}
-
+		
+		if (animatorObject == null)
+		{
+			Logger.Error($"Animator {animatorName} not found!");
+			return false;
+		}
+		
 		animatorController = (RuntimeAnimatorController)animatorObject;
 		return true;
 	}
