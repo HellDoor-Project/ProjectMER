@@ -29,6 +29,7 @@ public class SerializableLight : SerializableObject, IIndicatorDefinition
 	public float SpotAngle { get; set; } = 30f;
 
 	public float InnerSpotAngle { get; set; } = 0f;
+	public FlickerController FlickerController;
 
 	[YamlIgnore]
 	public override Vector3 Scale { get; set; }
@@ -53,6 +54,11 @@ public class SerializableLight : SerializableObject, IIndicatorDefinition
 		light.NetworkSpotAngle = SpotAngle;
 		light.NetworkInnerSpotAngle = InnerSpotAngle;
 
+		if (FlickerController == null)
+		{
+			FlickerController = light.gameObject.AddComponent<FlickerController>();
+		}
+		
 		if (instance == null)
 			NetworkServer.Spawn(light.gameObject);
 

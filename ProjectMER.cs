@@ -126,7 +126,7 @@ public class ProjectMER : Plugin<Config>
 
 	public override string Description => "MER LabAPI";
 
-	public override string Author => "Michal78900";
+	public override string Author => "Michal78900 (fork by Smer4k & DShadow)";
 
 	public override Version Version => new Version(2025, 8, 4, 2);
 

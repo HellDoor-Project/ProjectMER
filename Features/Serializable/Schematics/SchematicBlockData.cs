@@ -198,6 +198,7 @@ public class SchematicBlockData
 			light.NetworkShadowStrength = Convert.ToSingle(Properties["ShadowStrength"]);
 		}
 
+		light.gameObject.AddComponent<FlickerController>();
 		return light.gameObject;
 	}
 
