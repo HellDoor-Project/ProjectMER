@@ -1,5 +1,6 @@
 using AdminToys;
 using LabApi.Features.Wrappers;
+using MapGeneration;
 using Mirror;
 using ProjectMER.Features.Extensions;
 using ProjectMER.Features.Interfaces;
@@ -29,8 +30,12 @@ public class SerializableLight : SerializableObject, IIndicatorDefinition
 	public float SpotAngle { get; set; } = 30f;
 
 	public float InnerSpotAngle { get; set; } = 0f;
-	public FlickerController FlickerController;
+	
+	public bool Flicker { get; set; } = false;
+	public FacilityZone FlickerZone { get; set; } = FacilityZone.None;
 
+	public FlickerController FlickerController;
+	
 	[YamlIgnore]
 	public override Vector3 Scale { get; set; }
 
@@ -54,9 +59,22 @@ public class SerializableLight : SerializableObject, IIndicatorDefinition
 		light.NetworkSpotAngle = SpotAngle;
 		light.NetworkInnerSpotAngle = InnerSpotAngle;
 
-		if (FlickerController == null)
+		if (Flicker)
 		{
-			FlickerController = light.gameObject.AddComponent<FlickerController>();
+			if (FlickerController == null)
+			{
+				FlickerController = light.gameObject.AddComponent<FlickerController>();
+			}
+			light.transform.position.TryGetRoom(out var identifier);
+			FlickerController.UpdateRoom(identifier);
+			FlickerController.Zone = FlickerZone;
+		}
+		else
+		{
+			if (FlickerController != null)
+			{
+				GameObject.Destroy(FlickerController);
+			}
 		}
 		
 		if (instance == null)

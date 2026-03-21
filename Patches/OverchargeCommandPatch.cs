@@ -10,13 +10,7 @@ public static class OverchargeCommandPatch
 {
     public static bool Prefix(FacilityZone zoneToAffect, float duration)
     {
-        if (zoneToAffect != FacilityZone.None)
-            return true;
-
-        foreach (var flicker in FlickerController.Instances)
-        {
-            flicker.ServerFlickerLights(duration);
-        }
+        FlickerController.SetLightsByZone(zoneToAffect, duration);
         return true;
     }
 }

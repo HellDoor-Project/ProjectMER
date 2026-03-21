@@ -9,6 +9,9 @@ public class Config
 
 	[Description("Whether the object will be auto selected when spawning it.")]
 	public bool AutoSelect { get; set; } = true;
+	
+	[Description("The radius at which SCP 2176 will turn off LightSourceToy (if they have Flicker enabled)")]
+	public float LightDisablingRadiusScp2176 { get; set; } = 16.0f;
 
 	[Description(
 	"\n" +

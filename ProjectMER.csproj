@@ -33,6 +33,9 @@
     <Reference Include="NorthwoodLib">
       <HintPath>..\Plugins\dependencies\NorthwoodLib.dll</HintPath>
     </Reference>
+    <Reference Include="Pooling">
+      <HintPath>..\Plugins\dependencies\Pooling.dll</HintPath>
+    </Reference>
     <Reference Include="Unity.TextMeshPro">
       <HintPath>..\Plugins\dependencies\Unity.TextMeshPro.dll</HintPath>
     </Reference>

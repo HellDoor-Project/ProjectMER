@@ -40,6 +40,8 @@ public class ProjectMER : Plugin<Config>
 	public ActionOnEventHandlers AcionOnEventHandlers { get; } = new();
 
 	public PickupEventsHandler PickupEventsHandler { get; } = new();
+	
+	public FlickerEventsHandler FlickerEventsHandler { get; } = new();
 
 	public override void Enable()
 	{
@@ -71,6 +73,7 @@ public class ProjectMER : Plugin<Config>
 		CustomHandlersManager.RegisterEventsHandler(ToolGunEventsHandler);
 		CustomHandlersManager.RegisterEventsHandler(AcionOnEventHandlers);
 		CustomHandlersManager.RegisterEventsHandler(PickupEventsHandler);
+		CustomHandlersManager.RegisterEventsHandler(FlickerEventsHandler);
 
 		_harmony = new Harmony($"michal78900.mapEditorReborn-{DateTime.Now.Ticks}");
 		_harmony.PatchAll();
@@ -117,6 +120,7 @@ public class ProjectMER : Plugin<Config>
 		CustomHandlersManager.UnregisterEventsHandler(ToolGunEventsHandler);
 		CustomHandlersManager.UnregisterEventsHandler(AcionOnEventHandlers);
 		CustomHandlersManager.UnregisterEventsHandler(PickupEventsHandler);
+		CustomHandlersManager.UnregisterEventsHandler(FlickerEventsHandler);
 
 		_harmony.UnpatchAll();
 		_mapFileSystemWatcher?.Dispose();
@@ -128,7 +132,7 @@ public class ProjectMER : Plugin<Config>
 
 	public override string Author => "Michal78900 (fork by Smer4k & DShadow)";
 
-	public override Version Version => new Version(2025, 8, 4, 2);
+	public override Version Version => new Version(2025, 3, 21, 1);
 
 	public override Version RequiredApiVersion => new Version(1, 0, 0, 0);
 
