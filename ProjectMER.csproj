@@ -30,6 +30,9 @@
     <Reference Include="Mirror">
       <HintPath>..\Plugins\dependencies\Mirror_publicized.dll</HintPath>
     </Reference>
+    <Reference Include="mscorlib">
+      <HintPath>..\Plugins\dependencies\mscorlib.dll</HintPath>
+    </Reference>
     <Reference Include="NorthwoodLib">
       <HintPath>..\Plugins\dependencies\NorthwoodLib.dll</HintPath>
     </Reference>

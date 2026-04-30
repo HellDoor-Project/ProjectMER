@@ -9,6 +9,7 @@ using MEC;
 using Mirror;
 using PlayerRoles;
 using ProjectMER.Events.Handlers.Internal;
+using ProjectMER.Features.Actions;
 using ProjectMER.Features.Enums;
 using ProjectMER.Features.Extensions;
 using ProjectMER.Features.Objects;
@@ -59,7 +60,7 @@ public class SchematicBlockData
 			BlockType.Pickup => CreatePickup(schematicObject),
 			BlockType.Workstation => CreateWorkstation(),
 			BlockType.Text => CreateText(),
-			BlockType.Interactable => CreateInteractable(),
+			BlockType.Interactable => CreateInteractable(schematicObject),
 			BlockType.Waypoint => CreateWaypoint(),
 			BlockType.Locker => CreateLocker(),
 			BlockType.Door => CreateDoor(),
@@ -72,7 +73,8 @@ public class SchematicBlockData
 			BlockType.CullingParent => CreateCullingParent(),
 			BlockType.MirrorPrefab => CreateMirrorPrefab(),
 			BlockType.Clutter => CreateClutter(),
-			BlockType.Trigger => CreateTrigger(),
+			BlockType.Trigger => CreateTrigger(schematicObject),
+			BlockType.NavPoint => CreateNavPoint(),
 			_ => CreateEmpty(true)
 		};
 
@@ -244,13 +246,14 @@ public class SchematicBlockData
 		return text.gameObject;
 	}
 
-	private GameObject CreateInteractable()
+	private GameObject CreateInteractable(SchematicObject schematicObject)
 	{
 		InvisibleInteractableToy interactable = GameObject.Instantiate(PrefabManager.Interactable);
 		interactable.NetworkShape = (InvisibleInteractableToy.ColliderShape)Convert.ToInt32(Properties["Shape"]);
 		interactable.NetworkInteractionDuration = Convert.ToSingle(Properties["InteractionDuration"]);
 		interactable.NetworkIsLocked = Properties.TryGetValue("IsLocked", out object isLocked) && Convert.ToBoolean(isLocked);
-
+		ActionInteractableToy.Register(ObjectId, InteractableToy.Get(interactable), schematicObject);
+		
 		return interactable.gameObject;
 	}
 
@@ -460,7 +463,7 @@ public class SchematicBlockData
 		return Random.Range(0f, 100f) > chance ? null : CreateEmpty();
 	}
 
-	public GameObject? CreateTrigger()
+	public GameObject? CreateTrigger(SchematicObject schematicObject)
 	{
 		GameObject gameObject = GameObject.Instantiate(new GameObject("Trigger"));
 		var primitiveType = (PrimitiveType)Convert.ToInt32(Properties["PrimitiveType"]);
@@ -483,7 +486,28 @@ public class SchematicBlockData
 		}
 		
 		collider.isTrigger = true;
-		gameObject.AddComponent<TriggerObject>();
+		gameObject.AddComponent<TriggerObject>().Initialize(schematicObject, ObjectId);
+		return gameObject;
+	}
+
+	public GameObject? CreateNavPoint()
+	{
+		GameObject gameObject = GameObject.Instantiate(new GameObject("NavPoint"));
+		var navPoint = gameObject.AddComponent<NavPointObject>();
+		if (Properties.TryGetValue("Radius", out var radius))
+		{
+			navPoint.Radius = Convert.ToSingle(radius);
+		}
+
+		if (Properties.TryGetValue("ForceJump", out var forceJump))
+		{
+			navPoint.ForceJump = Convert.ToBoolean(forceJump);
+		}
+
+		if (Properties.TryGetValue("AllowShortcut", out var allowShortcut))
+		{
+			navPoint.AllowShortcut = Convert.ToBoolean(allowShortcut);
+		}
 		return gameObject;
 	}
 }

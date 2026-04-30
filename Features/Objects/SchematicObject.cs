@@ -1,6 +1,9 @@
 using AdminToys;
+using LabApi.Features.Wrappers;
+using MEC;
 using Mirror;
 using ProjectMER.Events.Handlers;
+using ProjectMER.Features.Actions;
 using ProjectMER.Features.Enums;
 using ProjectMER.Features.Serializable.Schematics;
 using UnityEngine;
@@ -135,11 +138,15 @@ public class SchematicObject : MonoBehaviour
 			{ data.RootObjectId, transform },
 		};
 
+		ActionHostsByObjectId.Clear();
+		ActionsByObjectId.Clear();
+
 		CreateRecursiveFromID(data.RootObjectId, data.Blocks, transform);
 
 		AddRigidbodies();
 		AddAnimators();
-
+		RegisterNavPoints(data.Blocks);
+		
 		Schematic.OnSchematicSpawned(new(this, Name));
 
 		return this;
@@ -186,12 +193,48 @@ public class SchematicObject : MonoBehaviour
 		
 		ObjectFromId.Add(block.ObjectId, gameObject.transform);
 
+		if (ProjectMER.Singleton.Config.ActionEnabled)
+		{
+			RegisterActionHost(block);
+		}
+		
 		if (block.BlockType != BlockType.Light && TryGetAnimatorController(block.AnimatorName, out RuntimeAnimatorController animatorController))
 			_animators.Add(gameObject, animatorController);
 
 		return gameObject.transform;
 	}
 
+	private void RegisterActionHost(SchematicBlockData block)
+	{
+		List<ActionEventList> actionEvents = ActionEventSerialization.ReadEventListsFromProperties(block.Properties);
+		if (actionEvents.Count == 0)
+			return;
+			
+		ActionEventHostObject actionHost = new(this, block.ObjectId);
+		actionHost.SetActionEvents(actionEvents);
+
+		ActionHostsByObjectId[block.ObjectId] = actionHost;
+		ActionsByObjectId[block.ObjectId] = actionHost.ActionsByEventId;
+	}
+
+	public bool TryGetActionsByEventId(int objectId, string eventId, out List<ActionGame> actions)
+	{
+		actions = null!;
+
+		if (!ActionsByObjectId.TryGetValue(objectId, out Dictionary<string, List<ActionGame>> actionsByEventId))
+			return false;
+
+		return actionsByEventId.TryGetValue(eventId, out actions);
+	}
+
+	public CoroutineHandle RunActionsByEventId(int objectId, string eventId, Player? target = null)
+	{
+		if (!ActionHostsByObjectId.TryGetValue(objectId, out ActionEventHostObject actionHost))
+			return default;
+
+		return actionHost.RunActions(eventId, target);
+	}
+	
 	private bool TryGetAnimatorController(string animatorName, out RuntimeAnimatorController animatorController)
 	{
 		animatorController = null!;
@@ -298,6 +341,35 @@ public class SchematicObject : MonoBehaviour
 		return hasRigidbodies;
 	}
 
+	private void RegisterNavPoints(List<SchematicBlockData> blocks)
+	{
+		foreach (var block in blocks)
+		{
+			if (block.BlockType != BlockType.NavPoint)
+				continue;
+			if (!ObjectFromId.TryGetValue(block.ObjectId, out var obj))
+				continue;
+			if (obj == null)
+				continue;
+			if (!obj.TryGetComponent<NavPointObject>(out var navPoint))
+				continue;
+			AllNavPointObjects.Add(navPoint);
+			if (!block.Properties.TryGetValue("NavPoints", out var property))
+				continue;
+			foreach (var navPointId in (List<object>)property)
+			{
+				var objId = Convert.ToInt32(navPointId);
+				if (!ObjectFromId.TryGetValue(objId, out obj))
+					continue;
+				if (obj == null)
+					continue;
+				if (!obj.TryGetComponent<NavPointObject>(out var childPoint))
+					continue;
+				navPoint.LinkNavPoints.Add(childPoint);
+			}
+		}
+	}
+
 
 	public void Destroy() => Destroy(gameObject);
 
@@ -311,12 +383,17 @@ public class SchematicObject : MonoBehaviour
 			if (obj.parent == null)
 				NetworkServer.Destroy(obj.gameObject);
 		}
+		ActionHostsByObjectId.Clear();
+		ActionsByObjectId.Clear();
 		NetworkServer.Destroy(gameObject);
 		Schematic.OnSchematicDestroyed(new(this, Name));
 	}
 
 	public Dictionary<int, Transform> ObjectFromId = [];
-
+	public Dictionary<int, ActionEventHostObject> ActionHostsByObjectId { get; } = [];
+	public Dictionary<int, Dictionary<string, List<ActionGame>>> ActionsByObjectId { get; } = [];
+	public List<NavPointObject> AllNavPointObjects = new();
+	
 	private readonly List<GameObject> _attachedBlocks = [];
 	private readonly List<NetworkIdentity> _networkIdentities = [];
 	private readonly List<AdminToyBase> _adminToyBases = [];
