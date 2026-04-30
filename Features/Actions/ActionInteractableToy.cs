@@ -23,7 +23,7 @@ public sealed class ActionInteractableToy
 
         if (schematicObject.TryGetActionsByEventId(objectId, nameof(OnSearchAborted), out _))
         {
-            toy.OnSearchAborted += OnSearchAborted;
+            toy.Base.OnSearchAborted += OnSearchAborted;
         }
 
         if (schematicObject.TryGetActionsByEventId(objectId, nameof(OnSearching), out _))
@@ -56,7 +56,7 @@ public sealed class ActionInteractableToy
         
         if (actionInteractableToy == null)
             return;
-        
+
         Instances.Add(actionInteractableToy);
         if (!_coroutineCheckInstances.IsRunning || !_coroutineCheckInstances.IsValid)
             _coroutineCheckInstances = Timing.RunCoroutine(CheckInstances());
@@ -86,12 +86,14 @@ public sealed class ActionInteractableToy
 
     private void OnInteracted(Player player)
     {
+        if (Toy.IsLocked)
+            return;
         SchematicObject.RunActionsByEventId(ObjectId, nameof(OnInteracted), player);
     }
 
-    private void OnSearchAborted(Player player)
+    private void OnSearchAborted(ReferenceHub hub)
     {
-        SchematicObject.RunActionsByEventId(ObjectId, nameof(OnSearchAborted), player);
+        SchematicObject.RunActionsByEventId(ObjectId, nameof(OnSearchAborted), Player.Get(hub));
     }
 
     private void OnSearching(Player player)
@@ -107,7 +109,8 @@ public sealed class ActionInteractableToy
     public void Unregister()
     {
         Toy.OnInteracted -= OnInteracted;
-        Toy.OnSearchAborted -= OnSearchAborted;
+        if (Toy.Base != null)
+            Toy.Base.OnSearchAborted -= OnSearchAborted;
         Toy.OnSearching -= OnSearching;
         Toy.OnSearched -= OnSearched;
     }

@@ -196,6 +196,11 @@ public class SchematicObject : MonoBehaviour
 		if (ProjectMER.Singleton.Config.ActionEnabled)
 		{
 			RegisterActionHost(block);
+
+			if (block.BlockType == BlockType.Interactable)
+			{
+				ActionInteractableToy.Register(block.ObjectId, InteractableToy.Get(gameObject.GetComponent<InvisibleInteractableToy>()), this);
+			}
 		}
 		
 		if (block.BlockType != BlockType.Light && TryGetAnimatorController(block.AnimatorName, out RuntimeAnimatorController animatorController))

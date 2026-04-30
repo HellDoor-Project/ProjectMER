@@ -9,7 +9,6 @@ using MEC;
 using Mirror;
 using PlayerRoles;
 using ProjectMER.Events.Handlers.Internal;
-using ProjectMER.Features.Actions;
 using ProjectMER.Features.Enums;
 using ProjectMER.Features.Extensions;
 using ProjectMER.Features.Objects;
@@ -60,7 +59,7 @@ public class SchematicBlockData
 			BlockType.Pickup => CreatePickup(schematicObject),
 			BlockType.Workstation => CreateWorkstation(),
 			BlockType.Text => CreateText(),
-			BlockType.Interactable => CreateInteractable(schematicObject),
+			BlockType.Interactable => CreateInteractable(),
 			BlockType.Waypoint => CreateWaypoint(),
 			BlockType.Locker => CreateLocker(),
 			BlockType.Door => CreateDoor(),
@@ -246,13 +245,12 @@ public class SchematicBlockData
 		return text.gameObject;
 	}
 
-	private GameObject CreateInteractable(SchematicObject schematicObject)
+	private GameObject CreateInteractable()
 	{
 		InvisibleInteractableToy interactable = GameObject.Instantiate(PrefabManager.Interactable);
 		interactable.NetworkShape = (InvisibleInteractableToy.ColliderShape)Convert.ToInt32(Properties["Shape"]);
 		interactable.NetworkInteractionDuration = Convert.ToSingle(Properties["InteractionDuration"]);
 		interactable.NetworkIsLocked = Properties.TryGetValue("IsLocked", out object isLocked) && Convert.ToBoolean(isLocked);
-		ActionInteractableToy.Register(ObjectId, InteractableToy.Get(interactable), schematicObject);
 		
 		return interactable.gameObject;
 	}

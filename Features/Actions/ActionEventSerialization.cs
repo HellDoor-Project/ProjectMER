@@ -1,4 +1,5 @@
 using System.Globalization;
+using ProjectMER.Features.Enums;
 using UnityEngine;
 using Utf8Json;
 
@@ -252,6 +253,7 @@ public static class ActionEventSerialization
 			Value = ReadString(dictionary, nameof(ActionGame.Value)),
 			TargetId = ReadInt(dictionary, nameof(ActionGame.TargetId)),
 			Param = ReadString(dictionary, nameof(ActionGame.Param)),
+			BlockType = (BlockType)ReadInt(dictionary, nameof(ActionGame.BlockType)),
 			ParamType = ReadAnimatorParamType(dictionary, nameof(ActionGame.ParamType)),
 		};
 

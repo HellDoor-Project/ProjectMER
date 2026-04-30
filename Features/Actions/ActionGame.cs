@@ -1,3 +1,4 @@
+using ProjectMER.Features.Enums;
 using UnityEngine;
 
 namespace ProjectMER.Features.Actions;
@@ -9,6 +10,8 @@ public class ActionGame
 	public string Value { get; set; } = string.Empty;
 	
 	public int TargetId { get; set; }
+	
+	public BlockType BlockType { get; set; }
 
 	public string Param { get; set; } = string.Empty;
 
@@ -18,12 +21,5 @@ public class ActionGame
 	{
 		Value ??= string.Empty;
 		Param ??= string.Empty;
-
-		if (Type == ActionType.Animation)
-			return;
-
-		TargetId = 0;
-		Param = string.Empty;
-		ParamType = default;
 	}
 }
