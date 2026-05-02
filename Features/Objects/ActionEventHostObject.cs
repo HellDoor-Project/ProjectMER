@@ -158,6 +158,17 @@ public class ActionEventHostObject
             return;
         }
 
+        if (action.Param == "Pause")
+        {
+            animator.speed = 0;
+            return;
+        }
+        if (action.Param == "Resume")
+        {
+            animator.speed = 1;
+            return;
+        }
+
         int paramHash = GetAnimatorParamHash(action.Param);
 
         switch (action.ParamType)
