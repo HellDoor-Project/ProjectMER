@@ -359,7 +359,7 @@ public class SchematicObject : MonoBehaviour
 			if (!obj.TryGetComponent<NavPointObject>(out var navPoint))
 				continue;
 			AllNavPointObjects.Add(navPoint);
-			if (!block.Properties.TryGetValue("NavPoints", out var property))
+			if (!block.Properties.TryGetValue(nameof(NavPointObject.LinkNavPoints), out var property))
 				continue;
 			foreach (var navPointId in (List<object>)property)
 			{
