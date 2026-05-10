@@ -487,7 +487,16 @@ public class SchematicBlockData
 		}
 		
 		collider.isTrigger = true;
-		gameObject.AddComponent<TriggerObject>().Initialize(schematicObject, ObjectId);
+		gameObject.AddComponent<Rigidbody>().isKinematic = true;
+		var triggerObject = gameObject.AddComponent<TriggerObject>();
+		triggerObject.SchematicObject = schematicObject;
+		triggerObject.ObjectId = ObjectId;
+		
+		if (Properties.TryGetValue("TargetType", out object targetType))
+		{
+			triggerObject.TargetType = (TriggerTargetType)Convert.ToInt32(targetType);
+		}
+		
 		return gameObject;
 	}
 
