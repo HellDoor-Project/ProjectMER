@@ -5,6 +5,7 @@ using Mirror;
 using ProjectMER.Events.Handlers;
 using ProjectMER.Features.Actions;
 using ProjectMER.Features.Enums;
+using ProjectMER.Features.Serializable;
 using ProjectMER.Features.Serializable.Schematics;
 using UnityEngine;
 using Utf8Json;
@@ -145,7 +146,6 @@ public class SchematicObject : MonoBehaviour
 
 		AddRigidbodies();
 		AddAnimators();
-		RegisterNavPoints(data.Blocks);
 		
 		Schematic.OnSchematicSpawned(new(this, Name));
 
@@ -345,37 +345,7 @@ public class SchematicObject : MonoBehaviour
 
 		return hasRigidbodies;
 	}
-
-	private void RegisterNavPoints(List<SchematicBlockData> blocks)
-	{
-		foreach (var block in blocks)
-		{
-			if (block.BlockType != BlockType.NavPoint)
-				continue;
-			if (!ObjectFromId.TryGetValue(block.ObjectId, out var obj))
-				continue;
-			if (obj == null)
-				continue;
-			if (!obj.TryGetComponent<NavPointObject>(out var navPoint))
-				continue;
-			AllNavPointObjects.Add(navPoint);
-			if (!block.Properties.TryGetValue(nameof(NavPointObject.LinkNavPoints), out var property))
-				continue;
-			foreach (var navPointId in (List<object>)property)
-			{
-				var objId = Convert.ToInt32(navPointId);
-				if (!ObjectFromId.TryGetValue(objId, out obj))
-					continue;
-				if (obj == null)
-					continue;
-				if (!obj.TryGetComponent<NavPointObject>(out var childPoint))
-					continue;
-				navPoint.LinkNavPoints.Add(childPoint);
-			}
-		}
-	}
-
-
+	
 	public void Destroy() => Destroy(gameObject);
 
 	private void OnDestroy()
@@ -397,8 +367,8 @@ public class SchematicObject : MonoBehaviour
 	public Dictionary<int, Transform> ObjectFromId = [];
 	public Dictionary<int, ActionEventHostObject> ActionHostsByObjectId { get; } = [];
 	public Dictionary<int, Dictionary<string, List<ActionGame>>> ActionsByObjectId { get; } = [];
-	public List<NavPointObject> AllNavPointObjects = new();
-	
+	public Dictionary<int, AudioPlayerSettings> AudioPlayerSettingsByObjectId { get; } = [];
+
 	private readonly List<GameObject> _attachedBlocks = [];
 	private readonly List<NetworkIdentity> _networkIdentities = [];
 	private readonly List<AdminToyBase> _adminToyBases = [];
