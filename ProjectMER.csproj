@@ -13,7 +13,7 @@
       <HintPath>..\Plugins\dependencies\0Harmony.dll</HintPath>
     </Reference>
     <Reference Include="ApiLib">
-      <HintPath>..\Plugins\target\plugins\ApiLib.dll</HintPath>
+      <HintPath>..\Plugins\ApiLib\bin\Release\ApiLib.dll</HintPath>
     </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>..\Plugins\dependencies\Assembly-CSharp_publicized.dll</HintPath>
