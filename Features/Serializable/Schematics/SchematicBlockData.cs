@@ -208,10 +208,56 @@ public class SchematicBlockData
 			if (!Convert.ToBoolean(flickerEnable)) 
 				return light.gameObject;
 			var flicker = light.gameObject.AddComponent<FlickerController>();
+			flicker.ObjectId = ObjectId;
 			flicker.AddSchematic(schematicObject);
-			if (Properties.TryGetValue("FlickerZone", out var flickerZone))
+			if (Properties.TryGetValue("FlickerZone", out var obj))
 			{
-				flicker.Zone = (FacilityZone)Convert.ToInt32(flickerZone);
+				flicker.Zone = (FacilityZone)Convert.ToInt32(obj);
+			}
+
+			if (Properties.TryGetValue("Cycle", out obj))
+			{
+				flicker.Cycle = Convert.ToBoolean(obj);
+			}
+			
+			if (Properties.TryGetValue("RandomInRange", out obj))
+			{
+				flicker.RandomInRange = Convert.ToBoolean(obj);
+			}
+
+			if (flicker.RandomInRange)
+			{
+				if (Properties.TryGetValue("MaxOn", out obj))
+				{
+					flicker.MaxOn = Convert.ToSingle(obj);
+				}
+
+				if (Properties.TryGetValue("MinOn", out obj))
+				{
+					flicker.MinOn = Convert.ToSingle(obj);
+				}
+
+				if (Properties.TryGetValue("MaxOff", out obj))
+				{
+					flicker.MaxOff = Convert.ToSingle(obj);
+				}
+
+				if (Properties.TryGetValue("MinOff", out obj))
+				{
+					flicker.MinOff = Convert.ToSingle(obj);
+				}
+			}
+			else
+			{
+				if (Properties.TryGetValue("TimeToOn", out obj))
+				{
+					flicker.TimeToOn = Convert.ToSingle(obj);
+				}
+
+				if (Properties.TryGetValue("TimeToOff", out obj))
+				{
+					flicker.TimeToOff = Convert.ToSingle(obj);
+				}
 			}
 		}
 		
