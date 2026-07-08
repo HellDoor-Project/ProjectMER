@@ -117,7 +117,10 @@ public static class MapUtils
 	public static SchematicObjectDataList GetSchematicDataByName(string schematicName)
 	{
 		SchematicObjectDataList data;
-		string schematicDirPath = Path.Combine(ProjectMER.SchematicsDir, schematicName);
+		
+		string schematicDirPath = ResolveDirectoryCaseInsensitive(ProjectMER.SchematicsDir, schematicName);
+		schematicName = Path.GetFileName(schematicDirPath);
+		
 		string schematicJsonPath = Path.Combine(schematicDirPath, $"{schematicName}.json");
 		string misplacedSchematicJsonPath = schematicDirPath + ".json";
 
@@ -229,7 +232,19 @@ public static class MapUtils
 
 		return data;
 	}
-
+	
+	// LINUX MOMENT
+	private static string ResolveDirectoryCaseInsensitive(string parentDir, string name)
+	{
+		var exactPath = Path.Combine(parentDir, name);
+		if (Directory.Exists(exactPath) || !Directory.Exists(parentDir))
+			return exactPath;
+		
+		var options = new EnumerationOptions { MatchCasing = MatchCasing.CaseInsensitive };
+		string? match = Directory.EnumerateDirectories(parentDir, name, options).FirstOrDefault();
+		return match ?? exactPath;
+	}
+	
 	public static string[] GetAvailableSchematicNames() => GetAvailableSchematicNames(ProjectMER.SchematicsDir);
 	public static string[] GetAvailableSchematicNames(string folder) => Directory.GetFiles(folder, "*.json", SearchOption.AllDirectories).Select(Path.GetFileNameWithoutExtension).Where(x => !x.Contains('-')).ToArray();
 
