@@ -1,4 +1,5 @@
 using AdminToys;
+using InventorySystem.Items.Pickups;
 using LabApi.Features.Wrappers;
 using MEC;
 using Mirror;
@@ -10,6 +11,7 @@ using ProjectMER.Features.Serializable.Schematics;
 using UnityEngine;
 using Utf8Json;
 using Utils.NonAllocLINQ;
+using Locker = MapGeneration.Distributors.Locker;
 using Object = UnityEngine.Object;
 
 namespace ProjectMER.Features.Objects;
@@ -146,6 +148,29 @@ public class SchematicObject : MonoBehaviour
 
 		AddRigidbodies();
 		AddAnimators();
+				
+		Timing.CallDelayed(0.25f, () =>
+		{
+			foreach (var playerBlockers in transform.GetComponentsInChildren<PlayerBlockerObject>())
+			{
+				playerBlockers.UpdateVisibility();
+			}
+
+			foreach (var locker in transform.GetComponentsInChildren<Locker>())
+			{
+				foreach (var itemPickupBase in locker.GetComponentsInChildren<ItemPickupBase>())
+				{
+					if (itemPickupBase.TryGetComponent(out Rigidbody rigidbody))
+						rigidbody.isKinematic = false;
+				}
+			}
+		});
+		
+		// coroutine
+		foreach (var damageableObject in transform.GetComponentsInChildren<DamageableObject>())
+		{
+			damageableObject.RegisterChildDestructibles(data.Blocks);
+		}
 		
 		Schematic.OnSchematicSpawned(new(this, Name));
 

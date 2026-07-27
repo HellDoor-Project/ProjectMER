@@ -2,6 +2,7 @@ using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Events.CustomHandlers;
 using LabApi.Features.Wrappers;
 using MEC;
+using PlayerRoles;
 using ProjectMER.Features;
 using ProjectMER.Features.Objects;
 using ProjectMER.Features.Serializable;
@@ -28,7 +29,7 @@ public class GenericEventsHandler : CustomEventsHandler
 
 	public override void OnPlayerSpawning(PlayerSpawningEventArgs ev)
 	{
-		if (!ev.UseSpawnPoint && Room.List.Count > 1)
+		if (!ev.Role.ServerSpawnFlags.HasFlag(RoleSpawnFlags.UseSpawnpoint) && Room.List.Count > 1)
 			return;
 
 		List<MonoBehaviour> list = [];
@@ -67,6 +68,21 @@ public class GenericEventsHandler : CustomEventsHandler
 				Logger.Error(e);
 			}
 		});
+	}
+	
+	public override void OnPlayerChangedRole(PlayerChangedRoleEventArgs ev)
+	{
+		foreach (var playerBlocker in PlayerBlockerObject.AllPlayerBlockers)
+		{
+			if (playerBlocker.Roles.Contains(ev.NewRole.RoleTypeId))
+			{
+				playerBlocker.HideForPlayer(ev.Player);
+			}
+			else
+			{
+				playerBlocker.ShowForPlayer(ev.Player);
+			}
+		}
 	}
 
 	public override void OnPlayerInteractingShootingTarget(PlayerInteractingShootingTargetEventArgs ev)
