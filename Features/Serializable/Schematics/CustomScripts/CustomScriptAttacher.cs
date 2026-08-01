@@ -1,12 +1,5 @@
 ﻿using HarmonyLib;
 using ProjectMER.Features.Objects;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using UnityEngine;
 
 namespace ProjectMER.Features.Serializable.Schematics.CustomScripts
 {
@@ -17,10 +10,13 @@ namespace ProjectMER.Features.Serializable.Schematics.CustomScripts
             try
             {
                 Type scriptType = AccessTools.TypeByName(data.ScriptClassName);
-                if (!scriptType.IsSubclassOf(typeof(CustomScript))) return;
-                MethodInfo addComponent = AccessTools.Method(typeof(GameObject), nameof(GameObject.AddComponent));
-                object result = addComponent.MakeGenericMethod(scriptType).Invoke(schematic.gameObject, []);
-                ((CustomScript)result).Init(schematic);
+                if (!scriptType.IsSubclassOf(typeof(CustomScript)))
+                {
+                    Logger.Warn($"Script class \"{data.ScriptClassName}\" is not a subclass of CustomScript");
+                    return;
+                }
+                var component = schematic.gameObject.AddComponent(scriptType);
+                ((CustomScript)component).Init(schematic);
             }
             catch (Exception ex)
             {
