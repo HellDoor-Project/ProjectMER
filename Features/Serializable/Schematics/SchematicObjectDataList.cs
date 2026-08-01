@@ -6,5 +6,7 @@ public class SchematicObjectDataList
 
 	public int RootObjectId { get; set; }
 
+	public string? ScriptClassName { get; set; }
+
 	public List<SchematicBlockData> Blocks { get; set; } = new();
 }

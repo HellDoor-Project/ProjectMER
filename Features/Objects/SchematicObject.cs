@@ -1,4 +1,5 @@
 using AdminToys;
+using HarmonyLib;
 using InventorySystem.Items.Pickups;
 using LabApi.Features.Wrappers;
 using MEC;
@@ -8,6 +9,7 @@ using ProjectMER.Features.Actions;
 using ProjectMER.Features.Enums;
 using ProjectMER.Features.Serializable;
 using ProjectMER.Features.Serializable.Schematics;
+using ProjectMER.Features.Serializable.Schematics.CustomScripts;
 using UnityEngine;
 using Utf8Json;
 using Utils.NonAllocLINQ;
@@ -172,6 +174,11 @@ public class SchematicObject : MonoBehaviour
 			damageableObject.RegisterChildDestructibles(data.Blocks);
 		}
 		
+		if (data.ScriptClassName is not null)
+		{
+			CustomScriptAttacher.AttachScript(data, this);
+		}
+
 		Schematic.OnSchematicSpawned(new(this, Name));
 
 		return this;

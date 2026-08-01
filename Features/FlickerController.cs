@@ -142,7 +142,8 @@ public sealed class FlickerController : MonoBehaviour
             if (_lightEnabled)
                 return;
             _lightEnabled = true;
-            LightSourceToy?.NetworkLightRange = _prevLightRange;
+            if (LightSourceToy is not null)
+                LightSourceToy.NetworkLightRange = _prevLightRange;
             if (Schematic != null)
                 Schematic.RunActionsByEventId(ObjectId, "TurnOn");
         }
@@ -152,7 +153,8 @@ public sealed class FlickerController : MonoBehaviour
                 return;
             _lightEnabled = false;
             _prevLightRange = LightSourceToy.NetworkLightRange;
-            LightSourceToy?.NetworkLightRange = 0.0f;
+            if (LightSourceToy is not null)
+                LightSourceToy.NetworkLightRange = 0.0f;
             if (Schematic != null)
                 Schematic.RunActionsByEventId(ObjectId, "TurnOff");
         }
