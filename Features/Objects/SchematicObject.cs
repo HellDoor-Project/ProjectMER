@@ -385,9 +385,11 @@ public class SchematicObject : MonoBehaviour
 		if (gameObject.TryGetComponent<MapEditorObject>(out var mapEditorObject))
 		{
 			IndicatorObject.TryDestroyIndicator(mapEditorObject);
-			MapSchematic map = MapUtils.LoadedMaps[mapEditorObject.MapName];
-			if (map.TryRemoveElement(mapEditorObject.Id))
-				map.DestroyObject(mapEditorObject.Id);
+			if (MapUtils.LoadedMaps.TryGetValue(mapEditorObject.MapName, out var loadedMap))
+			{
+				if (loadedMap.TryRemoveElement(mapEditorObject.Id))
+					loadedMap.DestroyObject(mapEditorObject.Id);
+			}
 		}
 		AnimationController.Dictionary.Remove(this);
 		foreach (var obj in ObjectFromId.Values)
