@@ -382,6 +382,13 @@ public class SchematicObject : MonoBehaviour
 
 	private void OnDestroy()
 	{
+		if (gameObject.TryGetComponent<MapEditorObject>(out var mapEditorObject))
+		{
+			IndicatorObject.TryDestroyIndicator(mapEditorObject);
+			MapSchematic map = MapUtils.LoadedMaps[mapEditorObject.MapName];
+			if (map.TryRemoveElement(mapEditorObject.Id))
+				map.DestroyObject(mapEditorObject.Id);
+		}
 		AnimationController.Dictionary.Remove(this);
 		foreach (var obj in ObjectFromId.Values)
 		{
