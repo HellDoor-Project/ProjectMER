@@ -83,10 +83,14 @@ public class ToolGunItem
 
 		ItemDictionary.Add(toolgun.ItemSerial, new ToolGunItem(toolgun));
 
-		new SSSEntriesPack((new ServerSpecificSettingBase[] {
-			new SSGroupHeader("MapEditorReborn"),
-			new SSDropdownSetting(ProjectMER.MerSettingId, "Schematic Name", MapUtils.GetAvailableSchematicNames(), isServerOnly: true)
-		}).Concat(ServerSpecificSettingsSync.DefinedSettings).ToArray(), ServerSpecificSettingsSync.Version).SendToHubsConditionally((x => x.inventory.UserInventory.Items.Values.Any(x => x.IsToolGun(out ToolGunItem _))));
+		List<ServerSpecificSettingBase> settings = ServerSpecificSettingsSync.DefinedSettings?.ToList() ?? [];
+
+		settings.RemoveAll(x => x is SSDropdownSetting { SettingId: ProjectMER.MerSettingId } || x is SSGroupHeader { Label: "ProjectMER" }); //ids are sill 0 can conflict with other plugins any way we can prevent that?
+		settings.AddRange([new SSGroupHeader("ProjectMER"), new SSDropdownSetting(ProjectMER.MerSettingId, "Schematic Name", MapUtils.GetAvailableSchematicNames())]);
+
+		ServerSpecificSettingsSync.DefinedSettings = [.. settings];
+		ServerSpecificSettingsSync.SendToPlayersConditionally(x => x.inventory.UserInventory.Items.Values.Any(itemBase => itemBase.IsToolGun(out _)));
+
 		return true;
 	}
 
@@ -94,10 +98,17 @@ public class ToolGunItem
 	{
 		foreach (ItemBase itemBase in player.Inventory.UserInventory.Items.Values)
 		{
-			if (ItemDictionary.ContainsKey(itemBase.ItemSerial))
+			if (ItemDictionary.Remove(itemBase.ItemSerial))
 			{
-				ItemDictionary.Remove(itemBase.ItemSerial);
 				player.RemoveItem(itemBase);
+				
+				ServerSpecificSettingBase[] filteredSettings = [.. (ServerSpecificSettingsSync.DefinedSettings ?? []).Where(x => x is not SSDropdownSetting { SettingId: ProjectMER.MerSettingId } && x is not SSGroupHeader { Label: "ProjectMER" })];
+
+				ServerSpecificSettingsSync.SendToPlayer(player.ReferenceHub, filteredSettings);
+
+				if (ItemDictionary.Count == 0)
+					ServerSpecificSettingsSync.DefinedSettings = filteredSettings;
+				
 				return true;
 			}
 		}

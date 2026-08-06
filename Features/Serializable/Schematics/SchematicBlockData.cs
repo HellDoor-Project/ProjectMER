@@ -73,6 +73,7 @@ public class SchematicBlockData
 			BlockType.Clutter => CreateClutter(),
 			BlockType.Trigger => CreateTrigger(schematicObject),
 			BlockType.AudioPlayer => CreateAudioPlayer(schematicObject),
+			BlockType.CullingZone => CreateCullingZone(),
 			_ => CreateEmpty(fallback: true)
 		};
 
@@ -219,6 +220,11 @@ public class SchematicBlockData
 		}
 		
 		primitive.NetworkPrimitiveFlags = primitiveFlags;
+		if (Properties.TryGetValue("Scp106Passable", out object scp106PassableObj)
+		    && Convert.ToBoolean(scp106PassableObj))
+		{
+			primitive.gameObject.AddComponent<Scp106PassableObject>();
+		}
 		return primitive.gameObject;
 	}
 
@@ -644,5 +650,53 @@ public class SchematicBlockData
 		
 		schematicObject.AudioPlayerSettingsByObjectId.Add(ObjectId, settings);
 		return gameObject;
+	}
+	
+	public GameObject? CreateCullingZone()
+	{
+		var empty = CreateEmpty();
+		var cullingZoneObject = empty.AddComponent<CullingZoneObject>();
+		
+		if (Properties.TryGetValue("ObjectPerSpawn", out object numberOfObjectPerSpawnObj))
+			cullingZoneObject.NumberOfObjectPerSpawn = Convert.ToInt32(numberOfObjectPerSpawnObj);
+
+		var colliderShape = InvisibleInteractableToy.ColliderShape.Sphere;
+		if (Properties.TryGetValue("ColliderShape", out object colliderShapeObj))
+			colliderShape = (InvisibleInteractableToy.ColliderShape)Convert.ToInt32(colliderShapeObj);
+
+		var colliderSize = Vector3.one;
+		if (Properties.TryGetValue("ColliderSize", out object colliderSizeObj))
+		{
+			colliderSize = colliderSizeObj.ToVector3();
+		}
+		
+		switch (colliderShape)
+		{
+			case InvisibleInteractableToy.ColliderShape.Sphere:
+				var sphereCollider = cullingZoneObject.gameObject.AddComponent<SphereCollider>();
+				sphereCollider.isTrigger = true;
+				sphereCollider.radius = colliderSize.x;
+				break;
+			case InvisibleInteractableToy.ColliderShape.Box:
+				var boxCollider = cullingZoneObject.gameObject.AddComponent<BoxCollider>();
+				boxCollider.isTrigger = true;
+				boxCollider.size = colliderSize;
+				if (Properties.TryGetValue("ColliderCenter", out object colliderCenterObj))
+					boxCollider.center = colliderCenterObj.ToVector3();
+				break;
+			case InvisibleInteractableToy.ColliderShape.Capsule:
+				var capsuleCollider = cullingZoneObject.gameObject.AddComponent<CapsuleCollider>();
+				capsuleCollider.isTrigger = true;
+				capsuleCollider.height = colliderSize.y;
+				capsuleCollider.radius = colliderSize.x;
+				break;
+			default:
+				sphereCollider = cullingZoneObject.gameObject.AddComponent<SphereCollider>();
+				sphereCollider.isTrigger = true;
+				sphereCollider.radius = colliderSize.x;
+				break;
+		}
+		
+		return empty;
 	}
 }

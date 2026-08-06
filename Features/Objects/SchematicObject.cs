@@ -150,14 +150,23 @@ public class SchematicObject : MonoBehaviour
 
 		AddRigidbodies();
 		AddAnimators();
-				
-		Timing.CallDelayed(0.25f, () =>
+		InitCullingZones(data.Blocks);
+		
+		Timing.CallDelayed(0.3f, () =>
 		{
 			foreach (var playerBlockers in transform.GetComponentsInChildren<PlayerBlockerObject>())
 			{
 				playerBlockers.UpdateVisibility();
 			}
 
+			foreach (var cullingZone in transform.GetComponentsInChildren<CullingZoneObject>())
+			{
+				_ = cullingZone.InitializeAsync();
+			}
+		});
+		
+		Timing.CallDelayed(2f, () =>
+		{
 			foreach (var locker in transform.GetComponentsInChildren<Locker>())
 			{
 				foreach (var itemPickupBase in locker.GetComponentsInChildren<ItemPickupBase>())
@@ -376,6 +385,31 @@ public class SchematicObject : MonoBehaviour
 		}
 
 		return hasRigidbodies;
+	}
+	
+	private void InitCullingZones(List<SchematicBlockData> blocks)
+	{
+		foreach (var block in blocks)
+		{
+			if (block.BlockType != BlockType.CullingZone)
+				continue;
+			if (!block.Properties.TryGetValue("ConnectedZones", out var connectedZonesObj))
+			{
+				continue;
+			}
+			var connector = ObjectFromId[block.ObjectId].GetComponent<CullingZoneObject>();
+			if (connector == null)
+				continue;
+			foreach (var id in (List<object>)connectedZonesObj)
+			{
+				if (!ObjectFromId.TryGetValue(Convert.ToInt32(id), out var target) ||
+				    !target.TryGetComponent<CullingZoneObject>(out var zone))
+				{
+					continue;
+				}
+				connector.ConnectedZones.Add(zone);
+			}
+		}
 	}
 	
 	public void Destroy() => Destroy(gameObject);
