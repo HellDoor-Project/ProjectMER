@@ -5,7 +5,6 @@ using Mirror;
 using RelativePositioning;
 using UnityEngine;
 using PrimitiveObjectToy = AdminToys.PrimitiveObjectToy;
-using WaypointToy = AdminToys.WaypointToy;
 
 namespace ProjectMER.Features.Objects;
 
