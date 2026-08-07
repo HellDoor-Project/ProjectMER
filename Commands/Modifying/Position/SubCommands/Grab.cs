@@ -53,6 +53,14 @@ public class Grab : ICommand
 			Room room = mapEditorObject.Room;
 			mapEditorObject.Base.Position = room.Name == MapGeneration.RoomName.Outside ? mapEditorObject.transform.position : mapEditorObject.Room.Transform.InverseTransformPoint(mapEditorObject.transform.position);
 			mapEditorObject.UpdateObjectAndCopies();
+			if (mapEditorObject.Base is SerializableSchematic _)
+			{
+				foreach (var cullingZone in mapEditorObject.gameObject.GetComponentsInChildren<CullingZoneObject>())
+				{
+					cullingZone.RefreshNetIds();
+					cullingZone.Pause = false;
+				}
+			}
 
 			response = "Ungrabbed";
 			return true;
@@ -70,6 +78,21 @@ public class Grab : ICommand
 		float multiplier = Vector3.Distance(position, mapEditorObject.transform.position);
 		Vector3 prevPos = position + (player.Camera.forward * multiplier);
 
+		if (mapEditorObject.Base is SerializableSchematic _)
+		{
+			var players = Player.ReadyList.Where(p => !p.IsDummy && !p.IsNpc).ToList();
+			foreach (var cullingZone in mapEditorObject.gameObject.GetComponentsInChildren<CullingZoneObject>())
+			{
+				cullingZone.Pause = true;
+				foreach (var pl in players)
+				{
+					if (pl == null)
+						continue;
+					cullingZone.RemovePlayer(pl);
+				}
+			}
+		}
+		
 		while (true)
 		{
 			yield return Timing.WaitForSeconds(0.1f);
@@ -112,6 +135,15 @@ public class Grab : ICommand
 		{
 			mapEditorObject.Base.Position = mapEditorObject.Room.Transform.InverseTransformPoint(mapEditorObject.transform.position);
 			mapEditorObject.UpdateObjectAndCopies();
+			
+			if (mapEditorObject.Base is SerializableSchematic _)
+			{
+				foreach (var cullingZone in mapEditorObject.gameObject.GetComponentsInChildren<CullingZoneObject>())
+				{
+					cullingZone.RefreshNetIds();
+					cullingZone.Pause = false;
+				}
+			}
 		}
 	}
 

@@ -150,7 +150,6 @@ public class SchematicObject : MonoBehaviour
 
 		AddRigidbodies();
 		AddAnimators();
-		InitCullingZones(data.Blocks);
 		
 		Timing.CallDelayed(0.3f, () =>
 		{
@@ -164,7 +163,20 @@ public class SchematicObject : MonoBehaviour
 				_ = cullingZone.InitializeAsync();
 			}
 		});
+
+		Timing.CallDelayed(0.4f, () =>
+		{
+			InitCullingZones(data.Blocks);
+		});
 		
+		Timing.CallDelayed(0.7f, () =>
+		{
+			foreach (var damageableObject in transform.GetComponentsInChildren<DamageableObject>())
+			{
+				damageableObject.RegisterChildDestructibles(data.Blocks);
+			}
+		});
+
 		Timing.CallDelayed(2f, () =>
 		{
 			foreach (var locker in transform.GetComponentsInChildren<Locker>())
@@ -177,19 +189,12 @@ public class SchematicObject : MonoBehaviour
 			}
 		});
 		
-		// coroutine
-		foreach (var damageableObject in transform.GetComponentsInChildren<DamageableObject>())
-		{
-			damageableObject.RegisterChildDestructibles(data.Blocks);
-		}
-		
 		if (data.ScriptClassName is not null)
 		{
 			CustomScriptAttacher.AttachScript(data, this);
 		}
 
 		Schematic.OnSchematicSpawned(new(this, Name));
-
 		return this;
 	}
 
