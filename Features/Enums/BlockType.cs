@@ -61,4 +61,5 @@ public enum BlockType
 	AudioPlayer = 40,
 	CullingZone = 41,
 	Generator = 42,
+	CameraTransfer = 43,
 }
