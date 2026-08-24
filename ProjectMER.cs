@@ -137,7 +137,7 @@ public class ProjectMER : Plugin<Config>
 
 	public override string Author => "Michal78900 (fork by Smer4k & DShadow)";
 
-	public override Version Version => new Version(2026, 8, 24, 1);
+	public override Version Version => new Version(2026, 8, 25, 1);
 
 	public override Version RequiredApiVersion => new Version(1, 0, 0, 0);
 
