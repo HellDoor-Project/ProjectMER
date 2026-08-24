@@ -1,56 +1,61 @@
-using System;
 using LabApi.Features.Wrappers;
 using ProjectMER.Features.Serializable;
 using UnityEngine;
 
 namespace ProjectMER.Features.Objects;
 
-public class TeleportObject : MonoBehaviour
+public sealed class TeleportObject : MonoBehaviour
 {
-	private void Start()
-	{
-		_mapEditorObject = GetComponent<MapEditorObject>();
-		Base = (SerializableTeleport)_mapEditorObject.Base;
-	}
+    private readonly Dictionary<Player, DateTime> _cooldowns = [];
+    private MapEditorObject _mapEditorObject;
+    public SerializableTeleport Base;
 
-	public SerializableTeleport Base;
-	private MapEditorObject _mapEditorObject;
+    private void Start()
+    {
+        _mapEditorObject = GetComponent<MapEditorObject>();
+        Base = (SerializableTeleport)_mapEditorObject.Base;
+    }
 
-	public DateTime NextTimeUse;
+    public TeleportObject? GetRandomTarget()
+    {
+        if (Base.Targets.Count == 0)
+            return null;
 
-	public TeleportObject? GetRandomTarget()
-	{
-		string targetId = Base.Targets.RandomItem();
+        string targetId = Base.Targets.RandomItem();
 
-		foreach (TeleportObject teleportObject in FindObjectsByType<TeleportObject>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
-		{
-			if (teleportObject._mapEditorObject.Id != targetId)
-				continue;
+        foreach (TeleportObject teleportObject in FindObjectsByType<TeleportObject>(FindObjectsInactive.Exclude,
+                     FindObjectsSortMode.None))
+        {
+            if (teleportObject._mapEditorObject.Id != targetId)
+                continue;
 
-			return teleportObject;
-		}
+            return teleportObject;
+        }
 
-		return null;
-	}
+        return null;
+    }
 
-	public void OnTriggerEnter(Collider other)
-	{
-		Player? player = Player.Get(other.gameObject);
-		if (player is null)
-			return;
+    public void OnTriggerEnter(Collider other)
+    {
+        if (!other.CompareTag("Player"))
+            return;
 
-		if (NextTimeUse > DateTime.Now)
-			return;
+        Player? player = Player.Get(other.gameObject);
+        if (player is null)
+            return;
 
-		TeleportObject? target = GetRandomTarget();
-		if (target == null)
-			return;
+        if (_cooldowns.TryGetValue(player, out DateTime next) && next > DateTime.Now)
+            return;
 
-		DateTime dateTime = DateTime.Now.AddSeconds(Base.Cooldown);
-		NextTimeUse = dateTime;
-		target.NextTimeUse = dateTime;
+        TeleportObject? target = GetRandomTarget();
+        if (target == null)
+            return;
 
-		player.Position = target.gameObject.transform.position;
-		player.LookRotation = target.gameObject.transform.eulerAngles;
-	}
+        DateTime cooldownUntil = DateTime.Now.AddSeconds(Base.Cooldown);
+        _cooldowns[player] = cooldownUntil;
+        target._cooldowns[player] = cooldownUntil;
+
+        player.Position = target.gameObject.transform.position;
+        player.LookRotation = target.gameObject.transform.eulerAngles;
+    }
 }

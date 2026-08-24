@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace ProjectMER.Features.Objects;
 
-public class SchematicTeleportObject : MonoBehaviour
+public sealed class SchematicTeleportObject : MonoBehaviour
 {
     private readonly Dictionary<Player, DateTime> _nextUsePerPlayer = new();
     public string Id { get; set; }
@@ -12,15 +12,16 @@ public class SchematicTeleportObject : MonoBehaviour
 
     public SchematicTeleportObject? GetRandomTarget()
     {
+        if (Targets.Count == 0)
+            return null;
+
         string targetId = Targets.RandomItem();
 
         foreach (SchematicTeleportObject teleportObject in FindObjectsByType<SchematicTeleportObject>(
                      FindObjectsInactive.Exclude, FindObjectsSortMode.None))
         {
             if (teleportObject.Id != targetId)
-            {
                 continue;
-            }
 
             return teleportObject;
         }
@@ -30,6 +31,9 @@ public class SchematicTeleportObject : MonoBehaviour
 
     public void OnTriggerEnter(Collider other)
     {
+        if (!other.CompareTag("Player"))
+            return;
+
         Player? player = Player.Get(other.gameObject);
         if (player is null)
             return;
