@@ -3,7 +3,9 @@ using LabApi.Events.Arguments.Scp079Events;
 using LabApi.Events.CustomHandlers;
 using LabApi.Features.Wrappers;
 using MEC;
+using NorthwoodLib.Pools;
 using PlayerRoles;
+using PlayerRoles.PlayableScps.Scp079;
 using ProjectMER.Features;
 using ProjectMER.Features.Objects;
 using ProjectMER.Features.Serializable;
@@ -184,22 +186,44 @@ public class GenericEventsHandler : CustomEventsHandler
 			}
 		}
 	}
-	
+
 	public override void OnScp079ChangedCamera(Scp079ChangedCameraEventArgs ev)
 	{
+		if (ev.Camera.Base.IsToy && ev.Camera.GameObject.TryGetComponent(out CameraTransferObject cameraTransferObject) 
+		                         && ev.Player.RoleBase is Scp079Role scp079Role)
+		{
+			// Northwood epic moment
+			// If you try to change the camera in `OnScp079ChangingCamera`, it will cause a bunch of extra event calls and drain more energy from SCP‑079 than necessary, so I have to use a workaround like this.
+			var flag = cameraTransferObject.TargetCamera.Room.Zone == scp079Role._curCamSync.CurrentCamera.Room.Zone;
+			var targetTime = flag ? 0.11f : 0.99f;
+			ev.Camera = cameraTransferObject.TargetCamera;
+			Timing.CallDelayed(targetTime, () =>
+			{
+				scp079Role._curCamSync.CurrentCamera = cameraTransferObject.TargetCamera.Base;
+			});
+		}
+
 		if (CullingZoneObject.AllCullingZone.Count == 0)
 			return;
-				
+		
 		if (ev.Player.IsDestroyed || ev.Player.IsDummy || ev.Player.IsNpc)
 			return;
 		
+		var targetCamera = ev.Camera.Base;
+		var targets = ListPool<Player>.Shared.Rent();
+		targets.AddRange(ev.Player.CurrentSpectators);
+		targets.Add(ev.Player);
+		
 		foreach (var zone in CullingZoneObject.AllCullingZone)
 		{
-			zone.RemovePlayer(ev.Player);
+			foreach (var target in targets)
+			{
+				zone.RemovePlayer(target);
+			}
 		}
 		
 		var colliders = Physics.OverlapSphere(
-			ev.Camera.Base.CameraAnchor.position,
+			targetCamera.CameraAnchor.position,
 			0.5f,
 			-1,
 			QueryTriggerInteraction.Collide);
@@ -208,8 +232,18 @@ public class GenericEventsHandler : CustomEventsHandler
 		{
 			if (collider.TryGetComponent(out CullingZoneObject cullingContainer))
 			{
-				cullingContainer.AddPlayer(ev.Player);
+				foreach (var target in targets)
+				{
+					cullingContainer.AddPlayer(target);
+					foreach (var connected in cullingContainer.ConnectedZones)
+					{
+						if (connected == null)
+							continue;
+						connected.AddPlayer(target);
+					}
+				}
 			}
 		}
+		ListPool<Player>.Shared.Return(targets);
 	}
 }
