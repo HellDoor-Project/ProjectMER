@@ -14,14 +14,16 @@ public sealed class SchematicTeleportObject : MonoBehaviour
     {
         if (Targets.Count == 0)
             return null;
-
+        
         string targetId = Targets.RandomItem();
 
         foreach (SchematicTeleportObject teleportObject in FindObjectsByType<SchematicTeleportObject>(
                      FindObjectsInactive.Exclude, FindObjectsSortMode.None))
         {
             if (teleportObject.Id != targetId)
+            {
                 continue;
+            }
 
             return teleportObject;
         }
@@ -33,7 +35,7 @@ public sealed class SchematicTeleportObject : MonoBehaviour
     {
         if (!other.CompareTag("Player"))
             return;
-
+        
         Player? player = Player.Get(other.gameObject);
         if (player is null)
             return;

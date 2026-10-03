@@ -5,7 +5,6 @@ using LabApi.Features.Wrappers;
 using MEC;
 using NorthwoodLib.Pools;
 using PlayerRoles;
-using PlayerRoles.PlayableScps.Scp079;
 using ProjectMER.Features;
 using ProjectMER.Features.Objects;
 using ProjectMER.Features.Serializable;
@@ -21,7 +20,7 @@ public class GenericEventsHandler : CustomEventsHandler
 	{
 		PrefabManager.Reset();
 	}
-	
+
 	public override void OnServerWaitingForPlayers()
 	{
 		PrefabManager.RegisterPrefabs();
@@ -35,7 +34,7 @@ public class GenericEventsHandler : CustomEventsHandler
 		FlickerController.FlickersBySchematic.Clear();
 		FlickerController.FlickersByRoom.Clear();
 	}
-	
+
 	public override void OnPlayerJoined(PlayerJoinedEventArgs ev)
 	{
 		if (ServerSpecificSettingsSync.DefinedSettings == null)
@@ -63,7 +62,7 @@ public class GenericEventsHandler : CustomEventsHandler
 				list.AddRange(map.SpawnedObjects.Where(x => x.Id == spawnpoint.Key));
 			}
 		}
-		
+
 		foreach (var spawnpoint in SchematicPlayerSpawnpointObject.SpawnpointObjects)
 		{
 			if (!spawnpoint.Roles.Contains(ev.Role.RoleTypeId))
@@ -89,7 +88,7 @@ public class GenericEventsHandler : CustomEventsHandler
 			}
 		});
 	}
-	
+
 	public override void OnPlayerChangedRole(PlayerChangedRoleEventArgs ev)
 	{
 		foreach (var playerBlocker in PlayerBlockerObject.AllPlayerBlockers)
@@ -146,11 +145,11 @@ public class GenericEventsHandler : CustomEventsHandler
 					zone.AddPlayer(ev.Player);
 				}
 			});
-		} else if (ev.OldRole == RoleTypeId.Filmmaker)
+		} else if (ev.OldRole is RoleTypeId.Filmmaker or RoleTypeId.Spectator or RoleTypeId.Overwatch)
 		{
 			Timing.CallDelayed(0.5f, () =>
 			{
-				if (ev.Player == null || ev.Player.IsDestroyed || ev.NewRole.RoleTypeId == RoleTypeId.Filmmaker)
+				if (ev.Player == null || ev.Player.IsDestroyed || ev.NewRole.RoleTypeId is RoleTypeId.Filmmaker)
 					return;
 				foreach (var zone in CullingZoneObject.AllCullingZone)
 				{
@@ -165,44 +164,22 @@ public class GenericEventsHandler : CustomEventsHandler
 		if (ev.ShootingTarget.GameObject.TryGetComponent(out MapEditorObject _))
 			ev.IsAllowed = false;
 	}
-	
+
 	public override void OnPlayerChangedSpectator(PlayerChangedSpectatorEventArgs ev)
 	{
 		if (CullingZoneObject.AllCullingZone.Count == 0)
 			return;
-		if (ev.Player == null || ev.Player.IsDestroyed || ev.Player.IsNpc || ev.Player.IsDummy || ev.NewTarget == null)
+		if (ev.Player == null || ev.Player.IsDestroyed || ev.Player.IsNpc || ev.Player.IsDummy)
 			return;
 
 		foreach (var zone in CullingZoneObject.AllCullingZone)
 		{
-			if (ev.OldTarget != null && zone.Contains(ev.OldTarget) && !zone.Contains(ev.NewTarget))
-			{
-				zone.HideFor(ev.Player);
-			}
-
-			if (zone.Contains(ev.NewTarget) && (ev.OldTarget == null || !zone.Contains(ev.OldTarget)))
-			{
-				zone.ShowFor(ev.Player);
-			}
+			zone.UpdateSpectatorTarget(ev.Player, ev.OldTarget, ev.NewTarget);
 		}
 	}
 
 	public override void OnScp079ChangedCamera(Scp079ChangedCameraEventArgs ev)
 	{
-		if (ev.Camera.Base.IsToy && ev.Camera.GameObject.TryGetComponent(out CameraTransferObject cameraTransferObject) 
-		                         && ev.Player.RoleBase is Scp079Role scp079Role)
-		{
-			// Northwood epic moment
-			// If you try to change the camera in `OnScp079ChangingCamera`, it will cause a bunch of extra event calls and drain more energy from SCP‑079 than necessary, so I have to use a workaround like this.
-			var flag = cameraTransferObject.TargetCamera.Room.Zone == scp079Role._curCamSync.CurrentCamera.Room.Zone;
-			var targetTime = flag ? 0.11f : 0.99f;
-			ev.Camera = cameraTransferObject.TargetCamera;
-			Timing.CallDelayed(targetTime, () =>
-			{
-				scp079Role._curCamSync.CurrentCamera = cameraTransferObject.TargetCamera.Base;
-			});
-		}
-
 		if (CullingZoneObject.AllCullingZone.Count == 0)
 			return;
 		
@@ -211,39 +188,55 @@ public class GenericEventsHandler : CustomEventsHandler
 		
 		var targetCamera = ev.Camera.Base;
 		var targets = ListPool<Player>.Shared.Rent();
-		targets.AddRange(ev.Player.CurrentSpectators);
-		targets.Add(ev.Player);
-		
-		foreach (var zone in CullingZoneObject.AllCullingZone)
+		var spectators = ev.Player.CurrentSpectators;
+		try
 		{
-			foreach (var target in targets)
-			{
-				zone.RemovePlayer(target);
-			}
-		}
-		
-		var colliders = Physics.OverlapSphere(
-			targetCamera.CameraAnchor.position,
-			0.5f,
-			-1,
-			QueryTriggerInteraction.Collide);
+			targets.Add(ev.Player);
+			targets.AddRange(spectators);
 
-		foreach (var collider in colliders)
-		{
-			if (collider.TryGetComponent(out CullingZoneObject cullingContainer))
+			foreach (var zone in CullingZoneObject.AllCullingZone)
 			{
 				foreach (var target in targets)
 				{
-					cullingContainer.AddPlayer(target);
-					foreach (var connected in cullingContainer.ConnectedZones)
+					zone.RemovePlayer(target);
+				}
+			}
+
+			var colliders = Physics.OverlapSphere(
+				targetCamera.CameraAnchor.position,
+				0.5f,
+				-1,
+				QueryTriggerInteraction.Collide);
+
+			foreach (var collider in colliders)
+			{
+				if (collider.TryGetComponent(out CullingZoneObject cullingContainer))
+				{
+					foreach (var target in targets)
 					{
-						if (connected == null)
-							continue;
-						connected.AddPlayer(target);
+						cullingContainer.AddPlayer(target);
+						foreach (var connected in cullingContainer.ConnectedZones)
+						{
+							if (connected == null)
+								continue;
+							connected.AddPlayer(target);
+						}
 					}
 				}
 			}
 		}
-		ListPool<Player>.Shared.Return(targets);
+		finally
+		{
+			ListPool<Player>.Shared.Return(spectators);
+			ListPool<Player>.Shared.Return(targets);
+		}
+	}
+
+	public override void OnPlayerLeft(PlayerLeftEventArgs ev)
+	{
+		foreach (var zone in CullingZoneObject.AllCullingZone)
+		{
+			zone.OnPlayerLeft(ev.Player);
+		}
 	}
 }

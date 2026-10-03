@@ -591,7 +591,11 @@ public class SchematicBlockData
 
 	public GameObject? CreateTrigger(SchematicObject schematicObject)
 	{
-		GameObject gameObject = GameObject.Instantiate(new GameObject("Trigger"));
+		var empty = CreateEmpty();
+		var gameObject = empty.gameObject;
+		gameObject.name = "Trigger";
+		gameObject.layer = 29;
+		
 		var primitiveType = (PrimitiveType)Convert.ToInt32(Properties["PrimitiveType"]);
 		Collider collider;
 		switch (primitiveType)
@@ -665,6 +669,7 @@ public class SchematicBlockData
 	{
 		var empty = CreateEmpty();
 		var cullingZoneObject = empty.AddComponent<CullingZoneObject>();
+		empty.layer = 29; // fence
 		
 		if (Properties.TryGetValue("ObjectPerSpawn", out object numberOfObjectPerSpawnObj))
 			cullingZoneObject.NumberOfObjectPerSpawn = Convert.ToInt32(numberOfObjectPerSpawnObj);
@@ -790,7 +795,7 @@ public class SchematicBlockData
 				if (!schematicObject.ObjectFromId.TryGetValue(id, out var target) ||
 				    !target.TryGetComponent<Scp079CameraToy>(out var targetCamera))
 					return;
-				camera.gameObject.AddComponent<CameraTransferObject>().Init(targetCamera.Camera);
+				camera.gameObject.AddComponent<CameraTransferObject>().Init(camera.Camera, targetCamera.Camera);
 				camera.NetworkLabel = targetCamera.NetworkLabel;
 			});
 		}

@@ -1,6 +1,5 @@
 using System.Globalization;
 using AdminToys;
-using CommandSystem.Commands.Shared;
 using Interactables.Interobjects.DoorUtils;
 using LabApi.Features.Wrappers;
 using MapGeneration;
@@ -17,7 +16,7 @@ using TextToy = AdminToys.TextToy;
 
 namespace ProjectMER.Features.Objects;
 
-public class ActionEventHostObject
+public sealed class ActionEventHostObject
 {
     public static Action<SchematicObject, ActionGame> OnAudioAction;
     
@@ -156,7 +155,7 @@ public class ActionEventHostObject
             Logger.Warn($"Animation action skipped: no Animator for object id {targetObjectId}.");
             return;
         }
-
+        
         if (action.Param == "Pause")
         {
             animator.speed = 0;
@@ -167,7 +166,7 @@ public class ActionEventHostObject
             animator.speed = 1;
             return;
         }
-
+        
         var targetName = action.Param;
         var split = action.Param.Split('/');
 
@@ -230,11 +229,21 @@ public class ActionEventHostObject
 
             return;
         }
-        
+
         if (action.BlockType == BlockType.AudioPlayer)
         {
             OnAudioAction?.Invoke(_schematic, action);
             return;
+        }
+
+        switch (action.Param)
+        {
+            case "Rigidbody.isKinematic":
+                if (targetObj.TryGetComponent<Rigidbody>(out var rb))
+                {
+                    rb.isKinematic = action.Value.ParseBool();
+                }
+                return;
         }
 
         switch (action.BlockType)
@@ -335,7 +344,7 @@ public class ActionEventHostObject
                         interactable.NetworkInteractionDuration = action.Value.ParseFloat();
                         break;
                     case "IsLocked":
-                        interactable.IsLocked = action.Value.ParseBool();
+                        interactable.NetworkIsLocked = action.Value.ParseBool();
                         break;
                     case nameof(ActionInteractableToy.Permissions):
                         if (!ActionInteractableToy.Instances.TryGetValue(InteractableToy.Get(interactable), out var actionInteractableToy))
