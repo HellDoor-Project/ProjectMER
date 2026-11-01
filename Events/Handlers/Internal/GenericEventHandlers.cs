@@ -1,3 +1,4 @@
+using CustomPlayerEffects;
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Events.Arguments.Scp079Events;
 using LabApi.Events.CustomHandlers;
@@ -109,13 +110,13 @@ public class GenericEventsHandler : CustomEventsHandler
 
 		if (ev.NewRole.RoleTypeId == RoleTypeId.Scp106)
 		{
-			foreach (var passableObject in Scp106PassableObject.AllPassableObjects)
+			foreach (var passableObject in PassableObject.AllPassableObjects)
 			{
 				passableObject.SetPassableFor(ev.Player, true);
 			}
 		} else if (ev.OldRole == RoleTypeId.Scp106)
 		{
-			foreach (var passableObject in Scp106PassableObject.AllPassableObjects)
+			foreach (var passableObject in PassableObject.AllPassableObjects)
 			{
 				passableObject.SetPassableFor(ev.Player, false);
 			}
@@ -243,6 +244,16 @@ public class GenericEventsHandler : CustomEventsHandler
 		foreach (var zone in CullingZoneObject.AllCullingZone)
 		{
 			zone.OnPlayerLeft(ev.Player);
+		}
+	}
+
+	public override void OnPlayerUpdatedEffect(PlayerEffectUpdatedEventArgs ev)
+	{
+		if (ev.Effect is not Ghostly)
+			return;
+		foreach (var passableObject in PassableObject.AllPassableObjects)
+		{
+			passableObject.SetPassableFor(ev.Player, ev.Intensity > 0);
 		}
 	}
 }

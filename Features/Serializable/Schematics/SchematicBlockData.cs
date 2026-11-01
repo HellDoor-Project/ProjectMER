@@ -67,6 +67,8 @@ public class SchematicBlockData
 				!Convert.ToBoolean(scp106Passable),
 			BlockType.Light => !Properties.TryGetValue("Flicker", out object flicker) || !Convert.ToBoolean(flicker),
 			BlockType.Text => true,
+			BlockType.Capybara => true,
+			BlockType.CullingParent => true,
 			_ => false,
 		};
 	}
@@ -101,6 +103,15 @@ public class SchematicBlockData
 			{
 				Size = Properties["DisplaySize"].ToVector2() * 20f,
 				TextFormat = Convert.ToString(Properties["Text"]),
+			},
+			BlockType.Capybara => new ClientSideCapybara()
+			{
+				Collidable = !Properties.TryGetValue("Collidable", out object collidableObj) || Convert.ToBoolean(collidableObj),
+			},
+			BlockType.CullingParent => new ClientSideCullingParent()
+			{
+				BoundsPosition	= parentTransform != null ? parentTransform.TransformPoint(Position) : Position,
+				Size = Properties.TryGetValue("BoundsSize", out var value) ? value.ToVector3() : Scale,
 			},
 			_ => null!,
 		};
@@ -346,11 +357,26 @@ public class SchematicBlockData
 		}
 		
 		primitive.NetworkPrimitiveFlags = primitiveFlags;
-		if (Properties.TryGetValue("Scp106Passable", out object scp106PassableObj)
-		    && Convert.ToBoolean(scp106PassableObj))
+
+		var scp106Passable = false;
+		var ghostlyPassable = false;
+		if (Properties.TryGetValue("Scp106Passable", out object scp106PassableObj))
 		{
-			primitive.gameObject.AddComponent<Scp106PassableObject>();
+			scp106Passable = Convert.ToBoolean(scp106PassableObj);
 		}
+
+		if (Properties.TryGetValue("GhostlyPassable", out object ghostlyPassableObj))
+		{
+			ghostlyPassable = Convert.ToBoolean(ghostlyPassableObj);
+		}
+
+		if (scp106Passable || ghostlyPassable)
+		{
+			var passableObject = primitive.gameObject.AddComponent<PassableObject>();
+			passableObject.CanScp106Pass = scp106Passable;
+			passableObject.GhostlyPassable = ghostlyPassable;
+		}
+		
 		return primitive.gameObject;
 	}
 
@@ -631,7 +657,14 @@ public class SchematicBlockData
 	private GameObject CreateCapybara()
 	{
 		CapybaraToy capybaraToy = GameObject.Instantiate(PrefabManager.Capybara);
-		capybaraToy.CollisionsEnabled = true;
+		if (Properties.TryGetValue("Collidable", out object collidableObj))
+		{
+			capybaraToy.NetworkCollisionsEnabled = Convert.ToBoolean(collidableObj);
+		}
+		else
+		{
+			capybaraToy.NetworkCollisionsEnabled = true;
+		}
 		return capybaraToy.gameObject;
 	}
 	
