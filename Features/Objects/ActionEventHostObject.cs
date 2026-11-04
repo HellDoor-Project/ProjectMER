@@ -274,7 +274,27 @@ public sealed class ActionEventHostObject
                         primitive.NetworkMaterialColor = action.Value.GetColorFromString();
                         break;
                 }
-
+                
+                var passableObject = targetObj.GetComponent<PassableObject>();
+                if (passableObject == null)
+                    break;
+                
+                switch (action.Param)
+                {
+                    case nameof(PassableObject.GhostlyPassable):
+                    {
+                        passableObject.GhostlyPassable = action.Value.ParseBool();
+                        passableObject.Refresh();
+                        break;
+                    }
+                    case nameof(PassableObject.Scp106Passable):
+                    {
+                        passableObject.Scp106Passable = action.Value.ParseBool();
+                        passableObject.Refresh();
+                        break;
+                    }
+                }
+                
                 break;
             case BlockType.Light:
                 var lightSourceToy = targetObj.GetComponent<LightSourceToy>();
