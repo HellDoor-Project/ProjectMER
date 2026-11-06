@@ -1,5 +1,7 @@
 using AdminToys;
 using InventorySystem.Items.Pickups;
+using LabApi.Events.Arguments.PlayerEvents;
+using LabApi.Events.Handlers;
 using LabApi.Features.Wrappers;
 using MEC;
 using Mirror;
@@ -193,11 +195,17 @@ public class SchematicObject : MonoBehaviour
 			CustomScriptAttacher.AttachScript(data, this);
 		}
 
+		foreach (var player in Player.ReadyList)
+		{
+			SpawnAllClientSide(player);
+		}
+		PlayerEvents.Joined -= OnPlayerJoined;
+		PlayerEvents.Joined += OnPlayerJoined;
 		Schematic.OnSchematicSpawned(new(this, Name));
 		return this;
 	}
 	
-		public async Awaitable<SchematicObject?> AsyncInit(SchematicObjectDataList data)
+	public async Awaitable<SchematicObject?> AsyncInit(SchematicObjectDataList data)
 	{
 		_asyncBlockCounter = 0;
 		Name = Path.GetFileNameWithoutExtension(data.Path);
@@ -261,6 +269,12 @@ public class SchematicObject : MonoBehaviour
 			}
 		}
 		
+		foreach (var player in Player.ReadyList)
+		{
+			SpawnAllClientSide(player);
+		}
+		PlayerEvents.Joined -= OnPlayerJoined;
+		PlayerEvents.Joined += OnPlayerJoined;
 		Schematic.OnSchematicSpawned(new(this, Name));
 		return this;
 	}
@@ -459,7 +473,7 @@ public class SchematicObject : MonoBehaviour
 	
 	private Transform? CreateClientSideToy(SchematicBlockData block, Transform parentTransform)
 	{
-		ClientSideToyAnchor anchor = block.CreateClientSideToyAnchor();
+		ClientSideToyAnchor anchor = block.CreateClientSideToyAnchor(block.ObjectId, this);
 		var anchorGameObject = anchor.gameObject;
 		anchorGameObject.name = block.Name;
 
@@ -474,7 +488,8 @@ public class SchematicObject : MonoBehaviour
 			return null;
 		}
 
-		ClientSideToyManager.Register(clientSideToy!);
+		// ClientSideToyManager.Register(clientSideToy);
+		ClientSideAdminToys.Add(block.ObjectId, clientSideToy);
 		ObjectFromId.Add(block.ObjectId, objectTransform);
 		return objectTransform;
 	}
@@ -665,10 +680,49 @@ public class SchematicObject : MonoBehaviour
 			if (obj.parent == null)
 				NetworkServer.Destroy(obj.gameObject);
 		}
+		
+		PlayerEvents.Joined -= OnPlayerJoined;
+		foreach (var key in ClientSideAdminToys.Keys)
+		{
+			DestroyClientSide(key);
+		}
+		ClientSideAdminToys.Clear();
 		ActionHostsByObjectId.Clear();
 		ActionsByObjectId.Clear();
 		NetworkServer.Destroy(gameObject);
 		Schematic.OnSchematicDestroyed(new(this, Name));
+	}
+
+	public void SpawnAllClientSide(Player player)
+	{
+		var connection = player.ConnectionToClient;
+		foreach (var clientSide in ClientSideAdminToys.Values)
+		{
+			clientSide.Spawn(connection);
+		}
+	}
+
+	public void DestroyClientSide(int objectId)
+	{
+		if (!ClientSideAdminToys.TryGetValue(objectId, out var clientSide))
+		{
+			return;
+		}
+		
+		clientSide.DestroyForAll();
+	}
+
+	private void OnPlayerJoined(PlayerJoinedEventArgs ev)
+	{
+		if (ev.Player.IsDummy || ev.Player.IsNpc)
+			return;
+		var connection = ev.Player.ConnectionToClient;
+		foreach (var clientSide in ClientSideAdminToys.Values)
+		{
+			if (!clientSide.ShowAlways)
+				continue;
+			clientSide.Spawn(connection);
+		}
 	}
 
 	public Dictionary<int, Transform> ObjectFromId = [];
@@ -676,7 +730,8 @@ public class SchematicObject : MonoBehaviour
 	public Dictionary<int, Dictionary<string, List<ActionGame>>> ActionsByObjectId { get; } = [];
 	public Dictionary<int, AudioPlayerSettings> AudioPlayerSettingsByObjectId { get; } = [];
 	public Dictionary<string, SchematicTeleportObject> TeleportObjects { get; } = new();
-
+	public Dictionary<int, ClientSideAdminToy> ClientSideAdminToys { get; } = new();
+	
 	private readonly List<GameObject> _attachedBlocks = [];
 	private readonly List<NetworkIdentity> _networkIdentities = [];
 	private readonly List<AdminToyBase> _adminToyBases = [];

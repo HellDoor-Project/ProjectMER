@@ -2,6 +2,8 @@
 using LabApi.Features.Wrappers;
 using Mirror;
 using UnityEngine;
+using PrimitiveObjectToy = AdminToys.PrimitiveObjectToy;
+using SpawnableCullingParent = AdminToys.SpawnableCullingParent;
 
 namespace ProjectMER.Features.ClientSideToys;
 
@@ -15,6 +17,7 @@ public abstract class ClientSideAdminToy
     public uint ParentNetId { get; set; }
     public uint NetId { get; set; }
     protected abstract uint AssetID { get; }
+    public bool ShowAlways { get; set; }
     
     private bool _spawnMessageSet = false;
     private SpawnMessage _spawnMessage;

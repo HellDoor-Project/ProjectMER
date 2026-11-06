@@ -119,7 +119,6 @@ public sealed class ProjectMER : Plugin<Config>
 
 	public override void Disable()
 	{
-		Features.ClientSideToys.ClientSideToyManager.Clear();
 		Singleton = null!;
 
 		CustomHandlersManager.UnregisterEventsHandler(GenericEventsHandler);

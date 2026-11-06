@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using AdminToys;
 using Footprinting;
 using Interactables.Interobjects.DoorUtils;
@@ -63,30 +64,31 @@ public class SchematicBlockData
 
 		return BlockType switch
 		{
-			BlockType.Empty => !Properties.TryGetValue("Damageable", out object damageableObj) || !Convert.ToBoolean(damageableObj),
+			// BlockType.Empty => !Properties.TryGetValue("Damageable", out object damageableObj) || !Convert.ToBoolean(damageableObj),
 			BlockType.Primitive => (!Properties.TryGetValue("Scp106Passable", out object scp106Passable) || !Convert.ToBoolean(scp106Passable)) 
 			                       && 
 			                       (!Properties.TryGetValue("GhostlyPassable", out object ghostlyPassable) || !Convert.ToBoolean(ghostlyPassable)),
 			BlockType.Light => !Properties.TryGetValue("Flicker", out object flicker) || !Convert.ToBoolean(flicker),
 			BlockType.Text => true,
 			BlockType.Capybara => true,
-			BlockType.CullingParent => true,
+			// BlockType.CullingParent => false,
 			_ => false,
 		};
 	}
 
-	public ClientSideToyAnchor CreateClientSideToyAnchor()
+	public ClientSideToyAnchor CreateClientSideToyAnchor(int objectId, SchematicObject schematicObject)
 	{
 		GameObject gameObject = new("Client-side toy anchor");
 		var anchor = gameObject.AddComponent<ClientSideToyAnchor>();
-
+		anchor.Init(objectId, schematicObject);
+		
 		if (BlockType == BlockType.Primitive && GetPrimitiveFlags().HasFlag(PrimitiveFlags.Collidable))
 			AddCollider(gameObject);
 
 		return anchor;
 	}
 
-	public bool TryCreateClientSideToy(ClientSideToyAnchor anchor, Transform parentTransform, out ClientSideAdminToy? clientSideToy)
+	public bool TryCreateClientSideToy(ClientSideToyAnchor anchor, Transform parentTransform, [NotNullWhen(true)] out ClientSideAdminToy? clientSideToy)
 	{
 		clientSideToy = null;
 		if (!ShouldCreateClientSideToy())
@@ -94,7 +96,7 @@ public class SchematicBlockData
 
 		ClientSideAdminToy toy = BlockType switch
 		{
-			BlockType.Empty => new ClientSidePrimitive()
+			BlockType.Empty => new ClientSidePrimitive
 			{
 				Type = PrimitiveType.Cube,
 				Color = Color.white,
@@ -112,13 +114,13 @@ public class SchematicBlockData
 				Size = Properties["DisplaySize"].ToVector2() * 20f,
 				TextFormat = Convert.ToString(Properties["Text"]),
 			},
-			BlockType.Capybara => new ClientSideCapybara()
+			BlockType.Capybara => new ClientSideCapybara
 			{
 				Collidable = !Properties.TryGetValue("Collidable", out object collidableObj) || Convert.ToBoolean(collidableObj),
 			},
-			BlockType.CullingParent => new ClientSideCullingParent()
+			BlockType.CullingParent => new ClientSideCullingParent
 			{
-				BoundsPosition	= parentTransform != null ? parentTransform.TransformPoint(Position) : Position,
+				BoundsPosition = parentTransform != null ? parentTransform.TransformPoint(Position) : Position,
 				Size = Properties.TryGetValue("BoundsSize", out var value) ? value.ToVector3() : Scale,
 			},
 			_ => null!,
@@ -129,7 +131,13 @@ public class SchematicBlockData
 		toy.Scale = Scale;
 		toy.IsStatic = true;
 		toy.NetId = anchor.NetId;
-		toy.SetParent(parentTransform);
+
+		if (BlockType != BlockType.CullingParent)
+		{
+			toy.SetParent(parentTransform);
+		}
+		
+		toy.ShowAlways = true;
 		clientSideToy = toy;
 		return true;
 	}
