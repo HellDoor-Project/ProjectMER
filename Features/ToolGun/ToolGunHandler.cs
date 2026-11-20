@@ -66,6 +66,9 @@ public static class ToolGunHandler
 
 		if (map.TryAddElement(id, serializableObject))
 			map.SpawnObject(id, serializableObject);
+		
+		if (serializableObject is SerializableSchematic)
+			return;
 
 		foreach (MapEditorObject mapEditorObject in map.SpawnedObjects)
 		{
